@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'fighter_list_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -106,7 +108,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             backgroundColor: Colors.red,
                           ),
                           onPressed: () {
-                            // aquí luego buscar sparrings
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FighterListScreen(
+                                  selectedWeight: selectedWeight,
+                                  city: searchController.text,
+                                ),
+                              ),
+                            );
                           },
                           child: Text('Buscar Combate'),
                         ),

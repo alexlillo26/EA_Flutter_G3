@@ -1,142 +1,150 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-String formatBirthDate(String input) {
-  try {
-    List<String> parts = input.split('/');
-    if (parts.length != 3) return input; // Si no está separado por '/', lo devuelve igual
-    final day = parts[0].padLeft(2, '0');
-    final month = parts[1].padLeft(2, '0');
-    final year = parts[2];
-    return '$year-$month-$day';
-  } catch (e) {
-    return input;
-  }
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-
-class RegisterScreen extends StatelessWidget {
+class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController birthdateController = TextEditingController();
+  final TextEditingController birthDateController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
+
+  String selectedWeight = 'Peso pluma';
+
+  Future<void> registerUser() async {
+    final url = Uri.parse('http://localhost:9000/api/users/register');
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'name': nameController.text,
+        'birthDate': birthDateController.text,
+        'email': emailController.text,
+        'password': passwordController.text,
+        'isAdmin': false,
+        'weight': selectedWeight,
+        'city': cityController.text,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario registrado correctamente')),
+      );
+      Navigator.pop(context);
+    } else {
+      final msg = json.decode(response.body)['message'] ?? 'Error desconocido';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $msg')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/images/boxing_bg.jpg',
-            fit: BoxFit.cover,
-          ),
-          Container(color: Colors.black.withOpacity(0.6)),
-          Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'REGISTRO',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                  SizedBox(height: 32),
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      hintText: 'Nombre',
-                      filled: true,
-                      fillColor: Colors.black,
-                      hintStyle: TextStyle(color: Colors.white60),
-                      border: OutlineInputBorder(),
-                    ),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: birthdateController,
-                    decoration: InputDecoration(
-                      hintText: 'Fecha de nacimiento (dd/mm/aaaa)',
-                      filled: true,
-                      fillColor: Colors.black,
-                      hintStyle: TextStyle(color: Colors.white60),
-                      border: OutlineInputBorder(),
-                    ),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: emailController,
-                    decoration: InputDecoration(
-                      hintText: 'Correo Electrónico',
-                      filled: true,
-                      fillColor: Colors.black,
-                      hintStyle: TextStyle(color: Colors.white60),
-                      border: OutlineInputBorder(),
-                    ),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: 'Contraseña',
-                      filled: true,
-                      fillColor: Colors.black,
-                      hintStyle: TextStyle(color: Colors.white60),
-                      border: OutlineInputBorder(),
-                    ),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onPressed: () async {
-                        final url = Uri.parse('http://localhost:9000/api/users/register');
-
-                         final response = await http.post(
-                         url,
-                          headers: {'Content-Type': 'application/json'},
-                        body: jsonEncode({
-                        'name': nameController.text,
-                        'birthDate': formatBirthDate(birthdateController.text),
-                        'email': emailController.text,
-                        'password': passwordController.text,
-                        'isAdmin': false
-                                        }),
-                );
-
-                    if (response.statusCode == 201) {
-                    Navigator.pushNamed(context, '/home');
-                 } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                     SnackBar(content: Text('Error al registrar: ${response.body}')),
-                     );
-                    }           
-                        
-                        },
-                      child: Text('Registrarse'),
-                    ),
-                  ),
-                ],
+      backgroundColor: Colors.black,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const Text(
+                'Registro',
+                style: TextStyle(color: Colors.red, fontSize: 24),
               ),
-            ),
+              const SizedBox(height: 20),
+
+              _buildInputField('Nombre', nameController),
+              const SizedBox(height: 12),
+
+              _buildDateField('Fecha de nacimiento', birthDateController),
+              const SizedBox(height: 12),
+
+              _buildInputField('Correo electrónico', emailController),
+              const SizedBox(height: 12),
+
+              _buildInputField('Contraseña', passwordController, obscure: true),
+              const SizedBox(height: 12),
+
+              _buildInputField('Ciudad', cityController),
+              const SizedBox(height: 12),
+
+              DropdownButtonFormField<String>(
+                value: selectedWeight,
+                items: ['Peso pluma', 'Peso medio', 'Peso pesado']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedWeight = value!;
+                  });
+                },
+                decoration: _inputDecoration('Peso'),
+                dropdownColor: Colors.black,
+                style: const TextStyle(color: Colors.white),
+              ),
+
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: registerUser,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: const Text('Registrarse'),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildInputField(String hint, TextEditingController controller, {bool obscure = false}) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: const TextStyle(color: Colors.white),
+      decoration: _inputDecoration(hint),
+    );
+  }
+
+  Widget _buildDateField(String hint, TextEditingController controller) {
+    return TextField(
+      controller: controller,
+      readOnly: true,
+      style: const TextStyle(color: Colors.white),
+      decoration: _inputDecoration(hint),
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: DateTime(2000),
+          firstDate: DateTime(1950),
+          lastDate: DateTime.now(),
+        );
+        if (picked != null) {
+          controller.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+        }
+      },
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white54),
+      filled: true,
+      fillColor: Colors.white10,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
     );
   }
 }
