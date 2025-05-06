@@ -13,13 +13,13 @@ class Fighter {
     required this.city,
   });
 
-  factory Fighter.fromJson(Map<String, dynamic> json) {
+   factory Fighter.fromJson(Map<String, dynamic> json) {
     return Fighter(
-      id: json['_id'],
-      name: json['name'],
-      weight: json['weight'],
-      email: json['email'],
-      city: json['city'], 
+      id: json['_id'] ?? '',
+      name: json['name'] ?? '',
+      weight: json['weight'] ?? 'Peso no especificado',
+      email: json['email'] ?? 'Sin email',
+      city: json['city'] ?? 'Ciudad desconocida',
     );
   }
 }

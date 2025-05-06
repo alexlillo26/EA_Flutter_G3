@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+// ✅ Clase global temporal para guardar sesión
+class Session {
+  static String? token;
+  static String? refreshToken;
+}
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -65,44 +70,48 @@ class LoginScreen extends StatelessWidget {
                         backgroundColor: Colors.red,
                         padding: EdgeInsets.symmetric(vertical: 16),
                       ),
-                    onPressed: () async {
-                    if (!emailController.text.contains('@')) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Por favor ingresa un correo válido')),
+                      onPressed: () async {
+                        if (!emailController.text.contains('@')) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Por favor ingresa un correo válido')),
+                          );
+                          return;
+                        }
+
+                        if (passwordController.text.length < 8) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('La contraseña debe tener mínimo 8 caracteres')),
+                          );
+                          return;
+                        }
+
+                        final url = Uri.parse('http://localhost:9000/api/users/login');
+
+                        final response = await http.post(
+                          url,
+                          headers: {'Content-Type': 'application/json'},
+                          body: jsonEncode({
+                            'email': emailController.text,
+                            'password': passwordController.text,
+                          }),
                         );
-                        return;
-                    }
 
-                    if (passwordController.text.length < 8) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('La contraseña debe tener mínimo 8 caracteres')),
-                        );
-                        return;
-                    }
+                        if (response.statusCode == 200) {
+                          final body = jsonDecode(response.body);
+                          Session.token = body['token'];
+                          Session.refreshToken = body['refreshToken'];
 
-                    final url = Uri.parse('http://localhost:9000/api/users/login');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Inicio de sesión exitoso')),
+                          );
 
-                    final response = await http.post(
-                        url,
-                        headers: {'Content-Type': 'application/json'},
-                        body: jsonEncode({
-                        'email': emailController.text,
-                        'password': passwordController.text,
-                        }),
-                    );
-
-                    if (response.statusCode == 200) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Inicio de sesión exitoso')),
-                        );
-                        Navigator.pushNamed(context, '/home');
-                    } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Correo o contraseña incorrectos')),
-                        );
-                    }
-                    },
-
+                          Navigator.pushReplacementNamed(context, '/home');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Correo o contraseña incorrectos')),
+                          );
+                        }
+                      },
                       child: Text('Ingresar'),
                     ),
                   ),
@@ -112,17 +121,16 @@ class LoginScreen extends StatelessWidget {
                       Navigator.pushNamed(context, '/register');
                     },
                     child: RichText(
-                        text: TextSpan(
-                            text: '¿No tienes cuenta? ',
-                            style: TextStyle(color: Colors.white),
-                            children: [
-                            TextSpan(
-                                text: 'Regístrate',
-                                style: TextStyle(color: Colors.red),
-                            ),
-                            ],
-                        ),
-                     
+                      text: TextSpan(
+                        text: '¿No tienes cuenta? ',
+                        style: TextStyle(color: Colors.white),
+                        children: [
+                          TextSpan(
+                            text: 'Regístrate',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

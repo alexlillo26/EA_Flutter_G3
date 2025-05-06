@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/fighter_model.dart';
+import 'login_screen.dart'; // ✅ Para usar Session.token
 
 class FighterListScreen extends StatefulWidget {
   final String selectedWeight;
@@ -24,16 +25,25 @@ class _FighterListScreenState extends State<FighterListScreen> {
   }
 
   Future<List<Fighter>> fetchFightersByWeight(String weight) async {
-    final response = await http.get(Uri.parse('http://localhost:9000/api/users'));
+      final response = await http.get(
+        Uri.parse('http://localhost:9000/api/users?page=1&pageSize=50'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${Session.token}', // ✅ enviamos token aquí
+        },
+    );
+    print('🔍 BODY: ${response.body}'); // <- ✅ AÑADE ESTO
+
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
+      final List<dynamic> data = json.decode(response.body)['users']; // ✅ extraer users
       final fighters = data.map((json) => Fighter.fromJson(json)).toList();
+
       return fighters
-    .where((f) =>
-        f.weight == weight &&
-        f.city.toLowerCase().contains(widget.city.toLowerCase()))
-    .toList();
+          .where((f) =>
+              f.weight == weight &&
+              f.city.toLowerCase().contains(widget.city.toLowerCase()))
+          .toList();
     } else {
       throw Exception('Error al cargar los peleadores');
     }
@@ -66,7 +76,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                   subtitle: Text(fighter.email),
                   trailing: ElevatedButton(
                     onPressed: () {
-                      // Aquí puedes implementar la funcionalidad del botón "Mensaje" más adelante
+                      // Aquí puedo implementar la funcionalidad del botón "Mensaje" más adelante
                     },
                     child: Text('Mensaje'),
                   ),
