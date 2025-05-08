@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/fighter_model.dart';
+import 'combat_chat_screen.dart'; // ✅ Importa la pantalla de chat
 import 'login_screen.dart'; // ✅ Para usar Session.token
+
 
 class FighterListScreen extends StatefulWidget {
   final String selectedWeight;
@@ -28,7 +30,6 @@ class _FighterListScreenState extends State<FighterListScreen> {
   }
 
   Future<List<Fighter>> fetchFightersByWeight(String weight) async {
-    // Aquí se mantiene la funcionalidad existente para obtener los peleadores
     final response = await http.get(
       Uri.parse('http://localhost:9000/api/users?page=1&pageSize=50'),
       headers: {
@@ -156,11 +157,40 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                     children: [
                                       ElevatedButton(
                                         style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blue,
+                                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        ),
+                                        onPressed: () {
+                                          if (fighter.id != null &&
+                                              Session.userId != null &&
+                                              Session.username != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => CombatChatScreen(
+                                                  combatId: fighter.id,
+                                                  userToken: Session.token!,
+                                                  currentUserId: Session.userId!,
+                                                  currentUsername: Session.username!,
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Error: Datos incompletos para iniciar el chat.')),
+                                            );
+                                          }
+                                        },
+                                        child: Text('Mensaje'),
+                                      ),
+                                      SizedBox(width: 8),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.red,
                                           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         ),
                                         onPressed: () {
-                                          // Aquí puedes implementar la funcionalidad de "Ver Perfil" o "Retar"
+                                          // Aquí puedes implementar la funcionalidad de "Ver Perfil"
                                         },
                                         child: Text('Ver Perfil'),
                                       ),

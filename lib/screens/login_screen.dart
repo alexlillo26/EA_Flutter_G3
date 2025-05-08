@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 class Session {
   static String? token;
   static String? refreshToken;
+  static String? userId;
+  static String? username;
 }
 
 class LoginScreen extends StatelessWidget {
@@ -100,6 +102,8 @@ class LoginScreen extends StatelessWidget {
                           final body = jsonDecode(response.body);
                           Session.token = body['token'];
                           Session.refreshToken = body['refreshToken'];
+                          Session.userId = body['userId'];
+                          Session.username = body['username'];
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Inicio de sesión exitoso')),
