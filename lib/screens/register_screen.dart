@@ -14,11 +14,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController birthDateController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
   final TextEditingController cityController = TextEditingController();
 
   String selectedWeight = 'Peso pluma';
+  String selectedGender = 'Hombre';
 
   Future<void> registerUser() async {
+    if (passwordController.text != confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Las contraseñas no coinciden')),
+      );
+      return;
+    }
+
     final url = Uri.parse('http://localhost:9000/api/users/register');
 
     final response = await http.post(
@@ -29,6 +39,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'birthDate': birthDateController.text,
         'email': emailController.text,
         'password': passwordController.text,
+        'phone': phoneController.text,
+        'gender': selectedGender,
         'isAdmin': false,
         'weight': selectedWeight,
         'city': cityController.text,
@@ -72,7 +84,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _buildInputField('Correo electrónico', emailController),
               const SizedBox(height: 12),
 
+              _buildInputField('Teléfono', phoneController),
+              const SizedBox(height: 12),
+
+              DropdownButtonFormField<String>(
+                value: selectedGender,
+                items: ['Hombre', 'Mujer']
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedGender = value!;
+                  });
+                },
+                decoration: _inputDecoration('Sexo'),
+                dropdownColor: Colors.black,
+                style: const TextStyle(color: Colors.white),
+              ),
+              const SizedBox(height: 12),
+
               _buildInputField('Contraseña', passwordController, obscure: true),
+              const SizedBox(height: 12),
+
+              _buildInputField('Confirmar Contraseña', confirmPasswordController, obscure: true),
               const SizedBox(height: 12),
 
               _buildInputField('Ciudad', cityController),
@@ -100,7 +134,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   backgroundColor: Colors.red,
                   minimumSize: const Size(double.infinity, 50),
                 ),
-                child: const Text('Registrarse'),
+                child: const Text(
+                  'Registrarse',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
               ),
             ],
           ),

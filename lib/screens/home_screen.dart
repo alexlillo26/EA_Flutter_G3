@@ -11,9 +11,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   GoogleMapController? _mapController;
   Position? _currentPosition;
+  bool _showMap = false; // Controla si el mapa se muestra o no
 
   final TextEditingController searchController = TextEditingController();
-  String selectedExperience = 'Amateur';
   String selectedWeight = 'Peso pluma';
 
   @override
@@ -53,11 +53,11 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(color: Colors.black.withOpacity(0.6)),
           Center(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  const Text(
                     'Organiza y encuentra combates de Boxeo al instante',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -66,8 +66,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'Conecta con rivales, promotores y gimnasios. Participa en peleas equilibradas, entrena con los mejores y escala en el ranking.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -75,97 +75,118 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.white70,
                     ),
                   ),
-                  SizedBox(height: 32),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Ciudad, gimnasio o boxeador',
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(),
+                  const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Buscador de ciudad
+                        Expanded(
+                          child: TextField(
+                            controller: searchController,
+                            style: const TextStyle(color: Colors.black), // Texto en negro
+                            decoration: InputDecoration(
+                              hintText: 'Ciudad, gimnasio o boxeador',
+                              hintStyle: const TextStyle(color: Colors.grey),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12), // Ajusta la altura
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(width: 8),
-                      DropdownButton<String>(
-                        value: selectedExperience,
-                        items: ['Amateur', 'Profesional']
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedExperience = value!;
-                          });
-                        },
-                        dropdownColor: Colors.black,
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      SizedBox(width: 8),
-                      DropdownButton<String>(
-                        value: selectedWeight,
-                        items: ['Peso pluma', 'Peso ligero', 'Peso medio']
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedWeight = value!;
-                          });
-                        },
-                        dropdownColor: Colors.black,
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        const SizedBox(width: 8),
+                        // Selector de peso
+                        Container(
+                          height: 48, // Asegura que tenga la misma altura que el buscador
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white54),
+                          ),
+                          child: DropdownButton<String>(
+                            value: selectedWeight,
+                            items: ['Peso pluma', 'Peso ligero', 'Peso medio']
+                                .map((e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e, style: const TextStyle(color: Colors.white)),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedWeight = value!;
+                              });
+                            },
+                            dropdownColor: Colors.black,
+                            underline: Container(),
+                            icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                          ),
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => FighterListScreen(
-                                selectedWeight: selectedWeight,
-                                city: searchController.text,
+                        const SizedBox(width: 8),
+                        // Botón de buscar
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FighterListScreen(
+                                  selectedWeight: selectedWeight,
+                                  city: searchController.text,
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          },
+                          child: const Text(
+                            'Buscar Boxeadores',
+                            style: TextStyle(color: Colors.white), // Texto en blanco
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 32),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showMap = !_showMap; // Alterna la visibilidad del mapa
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.public, // Ícono de la tierra
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_showMap)
+                    SizedBox(
+                      height: 300,
+                      child: GoogleMap(
+                        onMapCreated: (controller) {
+                          _mapController = controller;
                         },
-                        child: Text('Buscar Combate'),
+                        initialCameraPosition: CameraPosition(
+                          target: _currentPosition != null
+                              ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+                              : const LatLng(0, 0), // Coordenadas iniciales por defecto
+                          zoom: 12,
+                        ),
+                        myLocationEnabled: true,
+                        myLocationButtonEnabled: true,
                       ),
-                    ],
-                  ),
-                  SizedBox(height: 32),
-                  Text(
-                    'Localiza tu gimnasio',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
                     ),
-                  ),
-                  SizedBox(height: 16),
-                  Container(
-                    height: 300, // Altura del mapa
-                    child: GoogleMap(
-                      onMapCreated: (controller) {
-                        _mapController = controller;
-                      },
-                      initialCameraPosition: CameraPosition(
-                        target: _currentPosition != null
-                            ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
-                            : LatLng(0, 0), // Coordenadas iniciales por defecto
-                        zoom: 12,
-                      ),
-                      myLocationEnabled: true,
-                      myLocationButtonEnabled: true,
-                    ),
-                  ),
                 ],
               ),
             ),
