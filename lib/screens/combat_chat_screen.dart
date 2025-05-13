@@ -1,14 +1,13 @@
-// screens/combat_chat_screen.dart
 import 'package:flutter/material.dart';
-import '../services/chat_service.dart'; // Ajusta la ruta
-import '../models/chat_message.dart'; // Ajusta la ruta
-import 'dart:async'; // Para Timer
+import '../services/chat_service.dart';
+import '../models/chat_message.dart';
+import 'dart:async';
 
 class CombatChatScreen extends StatefulWidget {
   final String combatId;
-  final String userToken; // Debes obtener esto de tu sistema de autenticación
-  final String currentUserId; // Y esto también
-  final String currentUsername; // Opcional, para mostrar tu nombre de usuario
+  final String userToken;
+  final String currentUserId;
+  final String currentUsername;
 
   const CombatChatScreen({
     Key? key,
@@ -28,7 +27,7 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
   bool _opponentIsTyping = false;
-  String _opponentUsername = "Oponente"; // Placeholder
+  String _opponentUsername = "Oponente";
 
   Timer? _typingTimer;
 
@@ -52,7 +51,6 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
 
     _chatService.notificationStream.listen((notification) {
       if (mounted) {
-        // Mostrar SnackBar o algún tipo de alerta
         final message = notification['message'] ?? 'Notificación desconocida';
         final type = notification['type'] ?? 'info';
         Color backgroundColor = Colors.blue;
@@ -65,21 +63,20 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
             backgroundColor: backgroundColor,
           ),
         );
-        // Si la notificación es sobre alguien uniéndose y tiene nombre de usuario
+
         if (message.contains("se ha unido") && notification.containsKey('username')) {
-             _opponentUsername = notification['username']; // Actualiza si es necesario
+          _opponentUsername = notification['username'];
         }
       }
     });
 
     _chatService.typingStream.listen((typingData) {
       if (mounted) {
-        // Asegurarse que no es el propio usuario
         if (typingData['userId'] != widget.currentUserId) {
           setState(() {
             _opponentIsTyping = typingData['isTyping'] ?? false;
             if (typingData.containsKey('username') && typingData['username'] != null) {
-                _opponentUsername = typingData['username'];
+              _opponentUsername = typingData['username'];
             }
           });
         }
@@ -91,21 +88,17 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
 
   void _handleTyping() {
     if (_typingTimer?.isActive ?? false) _typingTimer!.cancel();
-    _chatService.sendTypingStatus(widget.combatId, true); // Informar que está escribiendo
+    _chatService.sendTypingStatus(widget.combatId, true);
 
     _typingTimer = Timer(const Duration(seconds: 2), () {
-      _chatService.sendTypingStatus(widget.combatId, false); // Dejó de escribir después de un tiempo
+      _chatService.sendTypingStatus(widget.combatId, false);
     });
   }
 
   void _sendMessage() {
     if (_messageController.text.isNotEmpty) {
       _chatService.sendMessage(widget.combatId, _messageController.text);
-      // Opcional: Añadir localmente de inmediato para una UI más rápida
-      // Aunque es mejor esperar la confirmación del servidor (receive_combat_message)
-      // para asegurar que el mensaje se envió y tiene timestamp del servidor.
       _messageController.clear();
-      // Si enviaste un mensaje, ya no estás escribiendo.
       if (_typingTimer?.isActive ?? false) _typingTimer!.cancel();
       _chatService.sendTypingStatus(widget.combatId, false);
     }
@@ -125,12 +118,12 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
 
   @override
   void dispose() {
-    _chatService.sendTypingStatus(widget.combatId, false); // Asegurar que se envía false al salir
+    _chatService.sendTypingStatus(widget.combatId, false);
     _typingTimer?.cancel();
     _messageController.removeListener(_handleTyping);
     _messageController.dispose();
     _scrollController.dispose();
-    _chatService.dispose(); // MUY IMPORTANTE desconectar el socket
+    _chatService.dispose();
     super.dispose();
   }
 
@@ -141,14 +134,15 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Chat del Combate ${widget.combatId.substring(0,6)}...'), // Acortar ID si es largo
+            Text(_opponentUsername),
             if (_opponentIsTyping)
-              Text(
-                '$_opponentUsername está escribiendo...',
-                style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              const Text(
+                'Escribiendo...',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
               ),
           ],
         ),
+        backgroundColor: Colors.red,
       ),
       body: Column(
         children: [
@@ -176,22 +170,41 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isMe ? Theme.of(context).primaryColorLight : Colors.grey[300],
-          borderRadius: BorderRadius.circular(16),
+          color: isMe ? Colors.blueAccent : Colors.grey[800],
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+            bottomLeft: isMe ? Radius.circular(16) : Radius.zero,
+            bottomRight: isMe ? Radius.zero : Radius.circular(16),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 4,
+              offset: Offset(2, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Text(
-              isMe ? widget.currentUsername : (message.senderUsername ?? 'Oponente'),
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isMe ? Colors.black54 : Colors.black87),
+              isMe ? 'Tú' : (message.senderUsername ?? 'Oponente'),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.white70,
+              ),
             ),
-            const SizedBox(height: 2),
-            Text(message.message, style: TextStyle(color: isMe ? Colors.black87 : Colors.black)),
+            const SizedBox(height: 4),
+            Text(
+              message.message,
+              style: const TextStyle(color: Colors.white),
+            ),
             const SizedBox(height: 4),
             Text(
               '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
-              style: TextStyle(fontSize: 10, color: isMe ? Colors.black54 : Colors.grey[600]),
+              style: const TextStyle(fontSize: 10, color: Colors.white54),
             ),
           ],
         ),
@@ -207,16 +220,26 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
           Expanded(
             child: TextField(
               controller: _messageController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Escribe un mensaje...',
-                border: OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey[900],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              onSubmitted: (_) => _sendMessage(),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send),
-            onPressed: _sendMessage,
+          const SizedBox(width: 8),
+          CircleAvatar(
+            backgroundColor: Colors.red,
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white),
+              onPressed: _sendMessage,
+            ),
           ),
         ],
       ),
