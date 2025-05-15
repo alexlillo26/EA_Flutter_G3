@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'routes.dart';
+import 'screens/gym_login_screen.dart'; // Importa la nueva pantalla de gimnasios
 
 void main() {
   runApp(Face2FaceApp());
@@ -15,7 +16,10 @@ class Face2FaceApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.black,
       ),
       initialRoute: '/login',
-      routes: appRoutes,
+      routes: {
+        ...appRoutes, // Mantén las rutas existentes
+        '/gym-login': (context) => const GymLoginScreen(), // Nueva ruta para gimnasios
+      },
     );
   }
 }

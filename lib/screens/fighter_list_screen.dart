@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/fighter_model.dart';
 import 'combat_chat_screen.dart'; // ✅ Importa la pantalla de chat
+import 'create_combat_screen.dart'; // ✅ Importa la pantalla de crear combate
 import 'login_screen.dart'; // ✅ Para usar Session.token
 
 class FighterListScreen extends StatefulWidget {
@@ -200,6 +201,30 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                         icon: const Icon(Icons.person, color: Colors.white),
                                         label: const Text(
                                           'Ver Perfil',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // Botón de crear combate
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => CreateCombatScreen(
+                                                creator: Session.username ?? 'Creador',
+                                                opponent: fighter.name,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.sports_martial_arts, color: Colors.white),
+                                        label: const Text(
+                                          'Crear Combate',
                                           style: TextStyle(color: Colors.white),
                                         ),
                                       ),
