@@ -47,8 +47,8 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
             SnackBar(content: Text(_isRegistering ? 'Registro exitoso' : 'Inicio de sesión exitoso')),
         );
 
-        // Redirige a la pantalla principal o guarda la sesión
-        Navigator.pushReplacementNamed(context, '/home');
+        // Redirige a la pantalla principal de gimnasios
+         Navigator.pushReplacementNamed(context, '/gym-home');
         } else {
         String errorMessage = 'Error desconocido';
         try {

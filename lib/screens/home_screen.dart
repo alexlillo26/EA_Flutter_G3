@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'fighter_list_screen.dart';
 import 'profile_screen.dart'; // Pantalla de perfil
 import 'chat_list_screen.dart'; // Pantalla de chats
+import 'package:flutter_map/flutter_map.dart' as fmap;
+import 'package:latlong2/latlong.dart' as latlng;
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -11,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  GoogleMapController? _mapController;
+  
   Position? _currentPosition;
   bool _showMap = false; // Controla si el mapa se muestra o no
 
@@ -19,67 +20,73 @@ class _HomeScreenState extends State<HomeScreen> {
   String selectedWeight = 'Peso pluma';
 
   int _currentIndex = 2; // Índice inicial (Home)
-
-  late final List<Widget> _screens;
-
   @override
-  void initState() {
-    super.initState();
-    _getCurrentLocation();
+void initState() {
+  super.initState();
+  _getCurrentLocation();
+}
 
-    // Inicializa las pantallas
-    _screens = [
-      ProfileScreen(), // Pantalla de perfil
-      _buildMapScreen(), // Pantalla del mapa
-      _buildHomeScreen(), // Pantalla principal (Home)
-      ChatListScreen(), // Pantalla de chats
-    ];
-  }
+  List<Widget> get _screens => [
+    ProfileScreen(),
+    _buildMapScreen(),
+    _buildHomeScreen(),
+    ChatListScreen(),
+  ];
 
     void _getCurrentLocation() async {
-      try {
-        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-        if (!serviceEnabled) {
-          throw Exception('El servicio de ubicación está deshabilitado.');
-        }
+  try {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      print('Servicio de ubicación deshabilitado');
+      throw Exception('El servicio de ubicación está deshabilitado.');
+    }
 
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
-          permission = await Geolocator.requestPermission();
-          if (permission == LocationPermission.denied) {
-            throw Exception('Permiso de ubicación denegado.');
-          }
-        }
-
-        Position position = await Geolocator.getCurrentPosition();
-        setState(() {
-          _currentPosition = position;
-        });
-      } catch (e) {
-        print('Error al obtener la ubicación: $e');
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        print('Permiso de ubicación denegado');
+        throw Exception('Permiso de ubicación denegado.');
       }
     }
 
-  Widget _buildMapScreen() {
-    return Scaffold(
-      body: _currentPosition == null
-          ? const Center(child: CircularProgressIndicator())
-          : GoogleMap(
-              onMapCreated: (controller) {
-                _mapController = controller;
-              },
-              initialCameraPosition: CameraPosition(
-                target: LatLng(
-                  _currentPosition!.latitude,
-                  _currentPosition!.longitude,
-                ),
-                zoom: 12,
-              ),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: true,
-            ),
-    );
+    Position position = await Geolocator.getCurrentPosition();
+    print('Ubicación obtenida: ${position.latitude}, ${position.longitude}');
+    setState(() {
+      _currentPosition = position;
+    });
+  } catch (e) {
+    print('Error al obtener la ubicación: $e');
   }
+}
+
+  Widget _buildMapScreen() {
+  if (_currentPosition == null) {
+    return const Center(child: CircularProgressIndicator());
+  }
+  return fmap.FlutterMap(
+    options: fmap.MapOptions(
+      center: latlng.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+      zoom: 13.0,
+    ),
+    children: [
+      fmap.TileLayer(
+        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        subdomains: ['a', 'b', 'c'],
+      ),
+      fmap.MarkerLayer(
+        markers: [
+          fmap.Marker(
+            width: 80.0,
+            height: 80.0,
+            point: latlng.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+            child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
   Widget _buildHomeScreen() {
     return Stack(

@@ -4,7 +4,8 @@ import 'dart:convert';
 import '../models/fighter_model.dart';
 import 'combat_chat_screen.dart'; // ✅ Importa la pantalla de chat
 import 'create_combat_screen.dart'; // ✅ Importa la pantalla de crear combate
-import 'login_screen.dart'; // ✅ Para usar Session.token
+import 'login_screen.dart'; 
+import '../session.dart'; 
 
 class FighterListScreen extends StatefulWidget {
   final String selectedWeight;

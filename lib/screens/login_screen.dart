@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert'; // Para codificar/decodificar JSON
 import 'package:http/http.dart' as http; // Para hacer llamadas API
+import '../session.dart'; 
 
-// Clase global para guardar sesión
-class Session {
-  static String? token;
-  static String? refreshToken;
-  static String? userId;
-  static String? username;
-}
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
