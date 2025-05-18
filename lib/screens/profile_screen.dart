@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:face2face_app/config/app_config.dart';
 import 'package:http/http.dart' as http;
 import '../session.dart';
 
@@ -29,8 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final response = await http.get(
-      Uri.parse('http://localhost:9000/api/users/$userId'),
-      headers: {
+        Uri.parse('$API_BASE_URL/users/$userId'),      headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:face2face_app/config/app_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -29,8 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final url = Uri.parse('http://localhost:9000/api/users/register');
-
+    final url = Uri.parse('$API_BASE_URL/users/register');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},

@@ -9,7 +9,7 @@ class ChatService {
   // Para emulador Android, si el servidor corre en localhost:9000, usa 10.0.2.2:9000
   // Para web o desktop local, si el servidor corre en localhost:9000, usa localhost:9000
   // Para un servidor desplegado, usa su URL pública.
-  final String _serverUrl = "http://localhost:9000"; // CAMBIA ESTO SEGÚN SEA NECESARIO (tu LOCAL_PORT)
+  final String API_BASE_URL = "http://ea3-api.upc.edu/api"; // CAMBIA ESTO SEGÚN SEA NECESARIO (tu LOCAL_PORT)
 
   final _messageController = StreamController<ChatMessage>.broadcast();
   Stream<ChatMessage> get messageStream => _messageController.stream;
@@ -32,7 +32,7 @@ class ChatService {
     }
     
     _socket = IO.io(
-        _serverUrl,
+        API_BASE_URL,
         IO.OptionBuilder()
             .setTransports(['websocket']) // Opcional: fuerza websockets
             .disableAutoConnect() // Conectar manualmente

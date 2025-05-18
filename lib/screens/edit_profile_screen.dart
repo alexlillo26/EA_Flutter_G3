@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../session.dart';
+import 'package:face2face_app/config/app_config.dart'; 
+
 
 class EditProfileScreen extends StatefulWidget {
   @override
@@ -38,8 +40,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     final response = await http.get(
-      Uri.parse('http://localhost:9000/api/users/$userId'),
-      headers: {
+        Uri.parse('$API_BASE_URL/users/$userId'),      
+        headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
@@ -76,7 +78,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final token = Session.token;
     if (userId == null || token == null) return;
 
-    var uri = Uri.parse('http://localhost:9000/api/users/$userId');
+    var uri = Uri.parse('$API_BASE_URL/users/$userId');    
     var request = http.MultipartRequest('PUT', uri);
     request.headers['Authorization'] = 'Bearer $token';
 

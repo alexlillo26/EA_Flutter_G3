@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:face2face_app/config/app_config.dart';
 import 'package:http/http.dart' as http;
 
 class GymLoginScreen extends StatefulWidget {
@@ -27,8 +28,7 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
 
     try {
         final url = Uri.parse(
-            _isRegistering ? 'http://localhost:9000/api/gym' : 'http://localhost:9000/api/gym/login');
-        final response = await http.post(
+        _isRegistering ? '$API_BASE_URL/gym' : '$API_BASE_URL/gym/login');        final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({

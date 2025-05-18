@@ -6,6 +6,7 @@ import 'combat_chat_screen.dart'; // ✅ Importa la pantalla de chat
 import 'create_combat_screen.dart'; // ✅ Importa la pantalla de crear combate
 import 'login_screen.dart'; 
 import '../session.dart'; 
+import 'package:face2face_app/config/app_config.dart';
 
 class FighterListScreen extends StatefulWidget {
   final String selectedWeight;
@@ -32,8 +33,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
 
   Future<List<Fighter>> fetchFightersByWeight(String weight) async {
     final response = await http.get(
-      Uri.parse('http://localhost:9000/api/users?page=1&pageSize=50'),
-      headers: {
+        Uri.parse('$API_BASE_URL/users?page=1&pageSize=50'),      headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${Session.token}',
       },
