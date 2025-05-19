@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:face2face_app/config/app_config.dart';
 import 'package:http/http.dart' as http;
+import '../session.dart'; 
 
 class GymLoginScreen extends StatefulWidget {
   const GymLoginScreen({Key? key}) : super(key: key);
@@ -43,12 +44,24 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
 
         if (response.statusCode == 200 || response.statusCode == 201) {
         final body = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_isRegistering ? 'Registro exitoso' : 'Inicio de sesión exitoso')),
-        );
+        print('Respuesta backend: $body');
+        // Guarda el id del gimnasio si es login (no registro)
+        if (body['gym'] != null && body['gym']['_id'] != null) {
+         Session.gymId = body['gym']['_id'];
+      }
 
-        // Redirige a la pantalla principal de gimnasios
-         Navigator.pushReplacementNamed(context, '/gym-home');
+        if (Session.gymId != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(_isRegistering ? 'Registro exitoso' : 'Inicio de sesión exitoso')),
+          );
+          Navigator.pushReplacementNamed(context, '/gym-home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('No se pudo obtener el ID del gimnasio')),
+          );
+        };
+        } else if (response.statusCode == 401) {
+        } else if (response.statusCode == 400) {
         } else {
         String errorMessage = 'Error desconocido';
         try {
