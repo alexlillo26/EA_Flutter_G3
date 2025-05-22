@@ -8,6 +8,8 @@ import 'package:face2face_app/config/app_config.dart';
 
 
 class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
+
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }

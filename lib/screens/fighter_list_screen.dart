@@ -13,10 +13,10 @@ class FighterListScreen extends StatefulWidget {
   final String city;
 
   const FighterListScreen({
-    Key? key,
+    super.key,
     required this.selectedWeight,
     required this.city,
-  }) : super(key: key);
+  });
 
   @override
   _FighterListScreenState createState() => _FighterListScreenState();
@@ -163,8 +163,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         ),
                                         onPressed: () {
-                                          if (fighter.id != null &&
-                                              Session.userId != null &&
+                                          if (Session.userId != null &&
                                               Session.username != null) {
                                             Navigator.push(
                                               context,

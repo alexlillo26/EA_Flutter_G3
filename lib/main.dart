@@ -9,6 +9,8 @@ void main() {
 }
 
 class Face2FaceApp extends StatelessWidget {
+  const Face2FaceApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

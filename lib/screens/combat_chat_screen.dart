@@ -10,12 +10,12 @@ class CombatChatScreen extends StatefulWidget {
   final String currentUsername;
 
   const CombatChatScreen({
-    Key? key,
+    super.key,
     required this.combatId,
     required this.userToken,
     required this.currentUserId,
     required this.currentUsername,
-  }) : super(key: key);
+  });
 
   @override
   State<CombatChatScreen> createState() => _CombatChatScreenState();

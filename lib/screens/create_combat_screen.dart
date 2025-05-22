@@ -5,10 +5,10 @@ class CreateCombatScreen extends StatelessWidget {
   final String opponent;
 
   const CreateCombatScreen({
-    Key? key,
+    super.key,
     required this.creator,
     required this.opponent,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

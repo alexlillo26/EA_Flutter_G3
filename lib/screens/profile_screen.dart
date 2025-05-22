@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import '../session.dart';
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -146,7 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           _profileCard('Nombre', userData!['name']),
                           _profileCard('Correo', userData!['email']),
-                          _profileCard('Nacimiento', userData!['birthDate']?.toString()?.substring(0, 10) ?? ''),
+                          _profileCard('Nacimiento', userData!['birthDate']?.toString().substring(0, 10) ?? ''),
                           _profileCard('Peso', userData!['weight']),
                           _profileCard('Ciudad', userData!['city']),
                           _profileCard('Teléfono', userData!['phone']),

@@ -7,6 +7,8 @@ import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:latlong2/latlong.dart' as latlng;
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -14,7 +16,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   
   Position? _currentPosition;
-  bool _showMap = false; // Controla si el mapa se muestra o no
+  final bool _showMap = false; // Controla si el mapa se muestra o no
 
   final TextEditingController searchController = TextEditingController();
   String selectedWeight = 'Peso pluma';

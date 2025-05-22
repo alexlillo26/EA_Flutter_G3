@@ -4,7 +4,7 @@ import 'package:face2face_app/config/app_config.dart';
 import 'package:http/http.dart' as http;
 
 class GymLoginScreen extends StatefulWidget {
-  const GymLoginScreen({Key? key}) : super(key: key);
+  const GymLoginScreen({super.key});
 
   @override
   _GymLoginScreenState createState() => _GymLoginScreenState();
