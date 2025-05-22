@@ -30,7 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final url = Uri.parse('$API_BASE_URL/users/register');
+    final url = Uri.parse('http://ea3-api.upc.edu/api/users/register');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},

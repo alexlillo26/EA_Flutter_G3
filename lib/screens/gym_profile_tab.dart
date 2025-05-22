@@ -47,65 +47,54 @@ Widget build(BuildContext context) {
     );
   }
   return Center(
-    child: Card(
-      color: Colors.black.withOpacity(0.85),
-      elevation: 24,
-      shadowColor: Colors.redAccent.withOpacity(0.5),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(32),
-        side: BorderSide(color: Colors.white24, width: 2),
-      ),
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(32),
-          gradient: LinearGradient(
-            colors: [Colors.black87, Colors.red.shade900.withOpacity(0.7)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 54,
+            backgroundColor: Colors.red.shade900,
+            child: Icon(Icons.fitness_center, color: Colors.white, size: 54),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 48,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.fitness_center, color: Colors.red, size: 56),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                gymData!['name'] ?? '',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () {},
-                icon: Icon(Icons.edit, color: Colors.white),
-                label: Text('Editar perfil', style: TextStyle(color: Colors.white)),
-              ),
-              const SizedBox(height: 16),
-              Divider(color: Colors.white24, thickness: 1),
-              const SizedBox(height: 16),
-              _profileRow(Icons.email, 'Email', gymData!['email']),
-              _profileRow(Icons.phone, 'Teléfono', gymData!['phone']),
-              _profileRow(Icons.location_on, 'Ubicación', gymData!['place']),
-              _profileRow(Icons.euro, 'Precio', gymData!['price']?.toString()),
-            ],
+          const SizedBox(height: 18),
+          Text(
+            gymData!['name'] ?? '',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+            textAlign: TextAlign.center,
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            gymData!['place'] ?? '',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 18,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 18),
+          Divider(color: Colors.white24, thickness: 1),
+          const SizedBox(height: 8),
+          _profileRow(Icons.email, 'Email', gymData!['email']),
+          _profileRow(Icons.phone, 'Teléfono', gymData!['phone']),
+          _profileRow(Icons.euro, 'Precio', gymData!['price']?.toString()),
+          const SizedBox(height: 18),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {},
+            icon: const Icon(Icons.edit, color: Colors.white),
+            label: const Text('Editar perfil', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     ),
   );
