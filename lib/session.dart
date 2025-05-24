@@ -3,4 +3,5 @@ class Session {
   static String? refreshToken;
   static String? userId;
   static String? username;
+  static String? gymId;
 }
