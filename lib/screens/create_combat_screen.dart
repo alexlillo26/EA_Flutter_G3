@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../session.dart';
 
-class CreateCombatScreen extends StatelessWidget {
+class CreateCombatScreen extends StatefulWidget {
   final String creator;
   final String opponent;
 
@@ -9,6 +12,104 @@ class CreateCombatScreen extends StatelessWidget {
     required this.creator,
     required this.opponent,
   });
+
+  @override
+  State<CreateCombatScreen> createState() => _CreateCombatScreenState();
+}
+
+class _CreateCombatScreenState extends State<CreateCombatScreen> {
+  final nivelController = TextEditingController();
+  final fechaController = TextEditingController();
+  final horaController = TextEditingController();
+
+  List<Map<String, dynamic>> gyms = [];
+  String? selectedGymId;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchGyms();
+  }
+
+  Future<void> fetchGyms() async {
+    final url = Uri.parse('https://ea3-api.upc.edu/api/gym');
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      final List<dynamic> data = json is List
+          ? json
+          : (json['results'] ?? json['gyms'] ?? json['data'] ?? []);
+      setState(() {
+        gyms = data
+            .map<Map<String, dynamic>>((g) => {
+                  "id": g["email"], // Usa el email como identificador único
+                  "name": g["name"] ?? "Sin nombre",
+                })
+            .toList();
+        if (gyms.isNotEmpty) {
+          selectedGymId = gyms.first["id"];
+        }
+      });
+    }
+  }
+
+  Future<void> crearCombate() async {
+    final creatorId = widget.creator;
+    final opponentId = widget.opponent;
+    final gymId = selectedGymId;
+    final nivel = nivelController.text.trim();
+    final fecha = fechaController.text.trim(); // dd/mm/aaaa
+    final hora = horaController.text.trim();   // HH:mm
+
+    if (gymId == null ||
+        creatorId.isEmpty ||
+        opponentId.isEmpty ||
+        nivel.isEmpty ||
+        fecha.isEmpty ||
+        hora.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Faltan datos obligatorios')),
+      );
+      return;
+    }
+
+    try {
+      final partesFecha = fecha.split('/');
+      if (partesFecha.length != 3) throw Exception('Fecha inválida');
+      final fechaIso = '${partesFecha[2]}-${partesFecha[1].padLeft(2, '0')}-${partesFecha[0].padLeft(2, '0')}T${hora.padLeft(5, '0')}:00';
+
+      final combate = {
+        "creator": creatorId,
+        "opponent": opponentId,
+        "date": fechaIso,
+        "time": hora,
+        "level": nivel,
+        "gym": gymId,
+      };
+
+      final url = Uri.parse('https://ea3-api.upc.edu/api/combat');
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${Session.token}"
+        },
+        body: jsonEncode(combate),
+      );
+
+      if (response.statusCode == 201) {
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al crear combate: ${response.body}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Datos inválidos: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +136,7 @@ class CreateCombatScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Creador: $creator',
+                      'Creador: ${widget.creator}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -44,7 +145,7 @@ class CreateCombatScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Oponente: $opponent',
+                      'Oponente: ${widget.opponent}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -55,9 +156,35 @@ class CreateCombatScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              // Campos de entrada
-              const TextField(
-                decoration: InputDecoration(
+              gyms.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : DropdownButtonFormField<String>(
+                      value: selectedGymId,
+                      items: gyms
+                          .map((gym) => DropdownMenuItem<String>(
+                                value: gym["id"],
+                                child: Text(gym["name"]),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedGymId = value;
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        labelText: 'Gimnasio',
+                        border: OutlineInputBorder(),
+                        labelStyle: TextStyle(color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.black,
+                      ),
+                      dropdownColor: Colors.black,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nivelController,
+                decoration: const InputDecoration(
                   labelText: 'Nivel',
                   hintText: 'Selecciona el nivel de combate',
                   border: OutlineInputBorder(),
@@ -65,11 +192,12 @@ class CreateCombatScreen extends StatelessWidget {
                   filled: true,
                   fillColor: Colors.black,
                 ),
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 16),
-              const TextField(
-                decoration: InputDecoration(
+              TextField(
+                controller: fechaController,
+                decoration: const InputDecoration(
                   labelText: 'Fecha',
                   hintText: 'dd/mm/aaaa',
                   border: OutlineInputBorder(),
@@ -77,11 +205,12 @@ class CreateCombatScreen extends StatelessWidget {
                   filled: true,
                   fillColor: Colors.black,
                 ),
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 16),
-              const TextField(
-                decoration: InputDecoration(
+              TextField(
+                controller: horaController,
+                decoration: const InputDecoration(
                   labelText: 'Hora',
                   hintText: '--:--',
                   border: OutlineInputBorder(),
@@ -89,22 +218,9 @@ class CreateCombatScreen extends StatelessWidget {
                   filled: true,
                   fillColor: Colors.black,
                 ),
-                style: TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              const TextField(
-                decoration: InputDecoration(
-                  labelText: 'Gimnasio',
-                  hintText: 'Introduce el nombre del gimnasio',
-                  border: OutlineInputBorder(),
-                  labelStyle: TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.black,
-                ),
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 32),
-              // Botones
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -116,9 +232,7 @@ class CreateCombatScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    onPressed: () {
-                      // Aquí se implementará la lógica para crear el combate
-                    },
+                    onPressed: crearCombate,
                     child: const Text(
                       'Crear Combate',
                       style: TextStyle(color: Colors.white),
