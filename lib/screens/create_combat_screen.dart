@@ -33,23 +33,31 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
 
   Future<void> fetchGyms() async {
     final url = Uri.parse('https://ea3-api.upc.edu/api/gym');
-    final response = await http.get(url);
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      final List<dynamic> data = json is List
-          ? json
-          : (json['results'] ?? json['gyms'] ?? json['data'] ?? []);
-      setState(() {
-        gyms = data
-            .map<Map<String, dynamic>>((g) => {
-                  "id": g["email"], // Usa el email como identificador único
-                  "name": g["name"] ?? "Sin nombre",
-                })
-            .toList();
-        if (gyms.isNotEmpty) {
-          selectedGymId = gyms.first["id"];
-        }
-      });
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final List<dynamic> data = json is List
+            ? json
+            : (json['results'] ?? json['gyms'] ?? json['data'] ?? []);
+        setState(() {
+          gyms = data
+              .map<Map<String, dynamic>>((g) => {
+                    "id": g["_id"],
+                    "name": g["name"] ?? "Sin nombre",
+                  })
+              .toList();
+          if (gyms.isNotEmpty) {
+            selectedGymId = gyms.first["id"];
+          }
+        });
+      } else {
+        throw Exception('Error al obtener gimnasios: ${response.body}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cargar gimnasios: $e')),
+      );
     }
   }
 
@@ -59,7 +67,7 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
     final gymId = selectedGymId;
     final nivel = nivelController.text.trim();
     final fecha = fechaController.text.trim(); // dd/mm/aaaa
-    final hora = horaController.text.trim();   // HH:mm
+    final hora = horaController.text.trim(); // HH:mm
 
     if (gymId == null ||
         creatorId.isEmpty ||
@@ -76,7 +84,8 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
     try {
       final partesFecha = fecha.split('/');
       if (partesFecha.length != 3) throw Exception('Fecha inválida');
-      final fechaIso = '${partesFecha[2]}-${partesFecha[1].padLeft(2, '0')}-${partesFecha[0].padLeft(2, '0')}T${hora.padLeft(5, '0')}:00';
+      final fechaIso =
+          '${partesFecha[2]}-${partesFecha[1].padLeft(2, '0')}-${partesFecha[0].padLeft(2, '0')}T${hora.padLeft(5, '0')}:00';
 
       final combate = {
         "creator": creatorId,
@@ -85,6 +94,7 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
         "time": hora,
         "level": nivel,
         "gym": gymId,
+        "boxers": [creatorId, opponentId],
       };
 
       final url = Uri.parse('https://ea3-api.upc.edu/api/combat');
@@ -124,7 +134,6 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Cuadro para el creador y el oponente
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -227,7 +236,8 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -241,7 +251,8 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
