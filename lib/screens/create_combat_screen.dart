@@ -1,16 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../session.dart';
+import 'package:intl/intl.dart'; // Para formatear fechas y horas
+
+import 'package:face2face_app/session.dart';
+import 'package:face2face_app/config/app_config.dart';
+
+// Modelo simple para el gimnasio en el dropdown
+class GymMenuItem {
+  final String id;
+  final String name;
+
+  GymMenuItem({required this.id, required this.name});
+
+  factory GymMenuItem.fromJson(Map<String, dynamic> json) {
+    return GymMenuItem(
+      id: json['_id'] ?? '',
+      name: json['name'] ?? 'Gimnasio sin nombre',
+    );
+  }
+}
 
 class CreateCombatScreen extends StatefulWidget {
-  final String creator;
-  final String opponent;
+  final String creatorId;
+  final String creatorName; // Para mostrar en la UI
+  final String opponentId;
+  final String opponentName; // Para mostrar en la UI
 
   const CreateCombatScreen({
     super.key,
-    required this.creator,
-    required this.opponent,
+    required this.creatorId,
+    required this.creatorName,
+    required this.opponentId,
+    required this.opponentName,
   });
 
   @override
@@ -18,259 +40,496 @@ class CreateCombatScreen extends StatefulWidget {
 }
 
 class _CreateCombatScreenState extends State<CreateCombatScreen> {
-  final nivelController = TextEditingController();
-  final fechaController = TextEditingController();
-  final horaController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _levelController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _timeController = TextEditingController();
 
-  List<Map<String, dynamic>> gyms = [];
-  String? selectedGymId;
+  List<GymMenuItem> _gyms = [];
+  String? _selectedGymId;
+  bool _isLoadingGyms = true;
+  bool _isSubmitting = false;
+
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
 
   @override
   void initState() {
     super.initState();
-    fetchGyms();
+    _fetchGyms();
   }
 
-  Future<void> fetchGyms() async {
-    final url = Uri.parse('https://ea3-api.upc.edu/api/gym');
+  Future<void> _fetchGyms() async {
+    setState(() {
+      _isLoadingGyms = true;
+    });
     try {
-      final response = await http.get(url);
+      final token = Session.token;
+      if (token == null) {
+        throw Exception('Usuario no autenticado para cargar gimnasios.');
+      }
+
+      final url = Uri.parse('$API_BASE_URL/gym');
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
       if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        final List<dynamic> data = json is List
-            ? json
-            : (json['results'] ?? json['gyms'] ?? json['data'] ?? []);
+        final dynamic responseBody = json.decode(response.body);
+        List<dynamic> data = [];
+
+        if (responseBody is List) {
+          data = responseBody;
+        } else if (responseBody is Map<String, dynamic>) {
+          data = responseBody['gyms'] ??
+              responseBody['results'] ??
+              responseBody['data'] ??
+              [];
+        }
+
         setState(() {
-          gyms = data
-              .map<Map<String, dynamic>>((g) => {
-                    "id": g["_id"],
-                    "name": g["name"] ?? "Sin nombre",
-                  })
-              .toList();
-          if (gyms.isNotEmpty) {
-            selectedGymId = gyms.first["id"];
-          }
+          _gyms = data.map((g) => GymMenuItem.fromJson(g)).toList();
+          _isLoadingGyms = false;
         });
       } else {
-        throw Exception('Error al obtener gimnasios: ${response.body}');
+        throw Exception(
+            'Error al obtener gimnasios: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cargar gimnasios: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar gimnasios: ${e.toString()}')),
+        );
+        setState(() {
+          _isLoadingGyms = false;
+        });
+      }
     }
   }
 
-  Future<void> crearCombate() async {
-    final creatorId = widget.creator;
-    final opponentId = widget.opponent;
-    final gymId = selectedGymId;
-    final nivel = nivelController.text.trim();
-    final fecha = fechaController.text.trim(); // dd/mm/aaaa
-    final hora = horaController.text.trim(); // HH:mm
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(DateTime.now().year + 2),
+       builder: (context, child) { // Opcional: Para tematizar el DatePicker
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: Colors.red, // Color primario
+              onPrimary: Colors.white, // Color del texto sobre el primario
+              surface: Colors.grey[800]!, // Fondo del DatePicker
+              onSurface: Colors.white, // Texto del DatePicker
+            ),
+            dialogBackgroundColor: Colors.grey[900],
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
+      });
+    }
+  }
 
-    if (gymId == null ||
-        creatorId.isEmpty ||
-        opponentId.isEmpty ||
-        nivel.isEmpty ||
-        fecha.isEmpty ||
-        hora.isEmpty) {
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime ?? TimeOfDay.now(),
+      builder: (context, child) { // Opcional: Para tematizar el TimePicker
+        return Theme(
+          data: ThemeData.dark().copyWith(
+             colorScheme: ColorScheme.dark(
+              primary: Colors.red,
+              onPrimary: Colors.white,
+              surface: Colors.grey[800]!,
+              onSurface: Colors.white,
+            ),
+            dialogBackgroundColor: Colors.grey[900],
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: Colors.grey[900],
+              hourMinuteTextColor: Colors.white,
+              hourMinuteColor: Colors.grey[800],
+              dayPeriodTextColor: Colors.white,
+              dayPeriodColor: Colors.grey[700],
+              dialHandColor: Colors.red,
+              dialBackgroundColor: Colors.grey[800],
+              dialTextColor: Colors.white,
+              entryModeIconColor: Colors.red,
+            )
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedTime) {
+      setState(() {
+        _selectedTime = picked;
+        _timeController.text = picked.format(context);
+      });
+    }
+  }
+
+  Future<void> _submitCreateCombat() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    if (_selectedGymId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Faltan datos obligatorios')),
+        const SnackBar(content: Text('Por favor, selecciona un gimnasio.')),
+      );
+      return;
+    }
+    if (_selectedDate == null || _selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, selecciona fecha y hora.')),
       );
       return;
     }
 
-    try {
-      final partesFecha = fecha.split('/');
-      if (partesFecha.length != 3) throw Exception('Fecha inválida');
-      final fechaIso =
-          '${partesFecha[2]}-${partesFecha[1].padLeft(2, '0')}-${partesFecha[0].padLeft(2, '0')}T${hora.padLeft(5, '0')}:00';
+    setState(() {
+      _isSubmitting = true;
+    });
 
-      final combate = {
-        "creator": creatorId,
-        "opponent": opponentId,
-        "date": fechaIso,
-        "time": hora,
-        "level": nivel,
-        "gym": gymId,
-        "boxers": [creatorId, opponentId],
+    try {
+      final token = Session.token;
+      if (token == null) {
+        throw Exception('Usuario no autenticado.');
+      }
+
+      final DateTime combinedDateTime = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour,
+        _selectedTime!.minute,
+      );
+      final String isoDateTimeInUtc = combinedDateTime.toUtc().toIso8601String();
+
+      final combatData = {
+        "creator": widget.creatorId,
+        "opponent": widget.opponentId,
+        "date": isoDateTimeInUtc,
+        "time": _timeController.text,  
+        "level": _levelController.text.trim(),
+        "gym": _selectedGymId,
+        "boxers": [widget.creatorId, widget.opponentId],
+        // El backend debería asignar "status": "pending" por defecto
       };
 
-      final url = Uri.parse('https://ea3-api.upc.edu/api/combat');
+      print('Enviando datos de combate: ${json.encode(combatData)}');
+
+      final url = Uri.parse('$API_BASE_URL/combat');
       final response = await http.post(
         url,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer ${Session.token}"
+          "Authorization": "Bearer $token",
         },
-        body: jsonEncode(combate),
+        body: json.encode(combatData),
       );
 
-      if (response.statusCode == 201) {
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear combate: ${response.body}')),
-        );
+      if (mounted) {
+        if (response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('¡Propuesta de combate enviada exitosamente!')),
+          );
+          Navigator.pop(context, true);
+        } else {
+          final responseBody = json.decode(response.body);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Error al crear combate: ${responseBody['message'] ?? response.body}')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Datos inválidos: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final InputBorder finalInputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8.0),
+      borderSide: BorderSide(color: Colors.grey.shade700),
+    );
+
+    InputDecoration finalInputDecoration(String label, {Widget? suffixIcon}) =>
+        InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.white70),
+          filled: true,
+          fillColor: Colors.grey.shade900,
+          border: finalInputBorder,
+          enabledBorder: finalInputBorder,
+          focusedBorder: finalInputBorder.copyWith(
+            borderSide: BorderSide(color: Colors.red, width: 2),
+          ),
+          suffixIcon: suffixIcon,
+        );
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crear Combate'),
-        backgroundColor: Colors.black,
+        title: const Text('Proponer Combate'),
+        backgroundColor: Colors.red,
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/boxing_bg.jpg"),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+                Colors.black.withOpacity(0.75), BlendMode.darken),
+          ),
+        ),
         child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[900],
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.red, width: 2),
+          padding: const EdgeInsets.all(20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCombatantInfoCard(),
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _levelController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: finalInputDecoration(
+                      'Nivel del Combate (ej. Amateur, Profesional)'),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Por favor, ingresa el nivel del combate.';
+                    }
+                    return null;
+                  },
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Creador: ${widget.creator}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                const SizedBox(height: 16),
+                _buildGymDropdown(finalInputDecoration),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _dateController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: finalInputDecoration(
+                    'Fecha del Combate',
+                    suffixIcon:
+                        Icon(Icons.calendar_today, color: Colors.white70),
+                  ),
+                  readOnly: true,
+                  onTap: () => _selectDate(context),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, selecciona una fecha.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _timeController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: finalInputDecoration(
+                    'Hora del Combate',
+                    suffixIcon: Icon(Icons.access_time, color: Colors.white70),
+                  ),
+                  readOnly: true,
+                  onTap: () => _selectTime(context),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, selecciona una hora.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 32),
+                if (_isSubmitting)
+                  const Center(child: CircularProgressIndicator(color: Colors.red))
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      label: const Text('Enviar Propuesta',
+                          style: TextStyle(fontSize: 16, color: Colors.white)),
+                      onPressed: _submitCreateCombat,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Oponente: ${widget.opponent}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              gyms.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : DropdownButtonFormField<String>(
-                      value: selectedGymId,
-                      items: gyms
-                          .map((gym) => DropdownMenuItem<String>(
-                                value: gym["id"],
-                                child: Text(gym["name"]),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedGymId = value;
-                        });
-                      },
-                      decoration: const InputDecoration(
-                        labelText: 'Gimnasio',
-                        border: OutlineInputBorder(),
-                        labelStyle: TextStyle(color: Colors.white),
-                        filled: true,
-                        fillColor: Colors.black,
-                      ),
-                      dropdownColor: Colors.black,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nivelController,
-                decoration: const InputDecoration(
-                  labelText: 'Nivel',
-                  hintText: 'Selecciona el nivel de combate',
-                  border: OutlineInputBorder(),
-                  labelStyle: TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.black,
-                ),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: fechaController,
-                decoration: const InputDecoration(
-                  labelText: 'Fecha',
-                  hintText: 'dd/mm/aaaa',
-                  border: OutlineInputBorder(),
-                  labelStyle: TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.black,
-                ),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: horaController,
-                decoration: const InputDecoration(
-                  labelText: 'Hora',
-                  hintText: '--:--',
-                  border: OutlineInputBorder(),
-                  labelStyle: TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.black,
-                ),
-                style: const TextStyle(color: Colors.white),
-              ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: crearCombate,
-                    child: const Text(
-                      'Crear Combate',
-                      style: TextStyle(color: Colors.white),
                     ),
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                  const SizedBox(height: 16),
+                  SizedBox( // Botón de cancelar
+                    width: double.infinity,
+                    child: TextButton(
+                       onPressed: () => Navigator.pop(context),
+                       child: Text(
+                        'Cancelar',
+                        style: TextStyle(color: Colors.white70, fontSize: 15),
+                       ),
+                       style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12)
+                       ),
                     ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text(
-                      'Cancelar',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  )
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildCombatantInfoCard() {
+    return Card(
+      color: Colors.black.withOpacity(0.6),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: Colors.red.shade700, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Detalles de la Propuesta:',
+              style: TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: _combatantColumn(widget.creatorName, "Proponente", Icons.person_pin_circle_rounded)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.compare_arrows_rounded, color: Colors.white, size: 36),
+                      SizedBox(height: 4),
+                      Text("VS",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Expanded(child: _combatantColumn(widget.opponentName, "Oponente", Icons.person_pin_outlined)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _combatantColumn(String name, String role, IconData icon) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.red.shade300, size: 32),
+        const SizedBox(height: 6),
+        Text(
+          name,
+          style: const TextStyle(
+              color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          role,
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGymDropdown(
+      InputDecoration Function(String, {Widget? suffixIcon}) inputDecoration) {
+    if (_isLoadingGyms) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 16.0),
+        child: CircularProgressIndicator(color: Colors.red),
+      ));
+    }
+    if (_gyms.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Text(
+          'No hay gimnasios disponibles para seleccionar.',
+          style: TextStyle(color: Colors.orangeAccent.shade100, fontStyle: FontStyle.italic),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    return DropdownButtonFormField<String>(
+      value: _selectedGymId,
+      items: _gyms.map((gym) {
+        return DropdownMenuItem<String>(
+          value: gym.id,
+          child: Text(gym.name, style: const TextStyle(color: Colors.white)),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedGymId = value;
+        });
+      },
+      decoration: inputDecoration('Gimnasio Sede del Combate',
+          suffixIcon: Icon(Icons.sports_kabaddi, color: Colors.white70)),
+      dropdownColor: Colors.grey.shade800,
+      style: const TextStyle(color: Colors.white, fontSize: 16),
+      isExpanded: true,
+      iconEnabledColor: Colors.redAccent,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Por favor, selecciona un gimnasio.';
+        }
+        return null;
+      },
+      hint: const Text('Selecciona un gimnasio',
+          style: TextStyle(color: Colors.white54)),
+    );
+  }
+
+  @override
+  void dispose() {
+    _levelController.dispose();
+    _dateController.dispose();
+    _timeController.dispose();
+    super.dispose();
   }
 }

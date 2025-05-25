@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final url = Uri.parse('https://ea3-api.upc.edu/api/users/login');
+      final url = Uri.parse('http://localhost:9000/api/users/login');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},

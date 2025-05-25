@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'fighter_list_screen.dart';
-import 'profile_screen.dart'; // Pantalla de perfil
-import 'chat_list_screen.dart'; // Pantalla de chats
+import 'profile_screen.dart';
+import 'chat_list_screen.dart';
+import 'combat_management_screen.dart'; // <--- NUEVA IMPORTACIÓN
 import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:latlong2/latlong.dart' as latlng;
 
@@ -14,91 +15,118 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  
   Position? _currentPosition;
-  final bool _showMap = false; // Controla si el mapa se muestra o no
+  // final bool _showMap = false; // No parece usarse
 
   final TextEditingController searchController = TextEditingController();
-  String selectedWeight = 'Peso pluma';
+  String selectedWeight = 'Peso pluma'; // Asegúrate que este es un valor válido inicial
 
-  int _currentIndex = 2; // Índice inicial (Home)
+  // El orden de los BottomNavigationBarItems ahora será:
+  // 0: Perfil, 1: Mapa, 2: Home (Búsqueda), 3: Mis Combates <NUEVO>, 4: Chats
+  int _currentIndex = 2; // Índice inicial (Home - Búsqueda)
+
   @override
-void initState() {
-  super.initState();
-  _getCurrentLocation();
-}
-
-  List<Widget> get _screens => [
-    ProfileScreen(),
-    _buildMapScreen(),
-    _buildHomeScreen(),
-    ChatListScreen(),
-  ];
-
-    void _getCurrentLocation() async {
-  try {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      print('Servicio de ubicación deshabilitado');
-      throw Exception('El servicio de ubicación está deshabilitado.');
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        print('Permiso de ubicación denegado');
-        throw Exception('Permiso de ubicación denegado.');
-      }
-    }
-
-    Position position = await Geolocator.getCurrentPosition();
-    print('Ubicación obtenida: ${position.latitude}, ${position.longitude}');
-    setState(() {
-      _currentPosition = position;
-    });
-  } catch (e) {
-    print('Error al obtener la ubicación: $e');
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
   }
-}
+
+  // Actualizar la lista de pantallas para incluir CombatManagementScreen
+  List<Widget> get _screens => [
+        const ProfileScreen(), // Índice 0
+        _buildMapScreen(), // Índice 1
+        _buildSearchHomeScreenContent(), // Índice 2 (Contenido principal de búsqueda)
+        const CombatManagementScreen(), // Índice 3 <--- NUEVA PANTALLA
+        const ChatListScreen(), // Índice 4
+      ];
+
+  void _getCurrentLocation() async {
+    // ... (tu código existente para obtener la ubicación) ...
+     try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        print('Servicio de ubicación deshabilitado');
+        // Considera mostrar un mensaje al usuario
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          print('Permiso de ubicación denegado');
+          // Considera mostrar un mensaje al usuario
+          return;
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        print('Permiso de ubicación denegado permanentemente');
+        // Considera mostrar un mensaje al usuario y guiarlo a la configuración de la app
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition();
+      print('Ubicación obtenida: ${position.latitude}, ${position.longitude}');
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    } catch (e) {
+      print('Error al obtener la ubicación: $e');
+      // Considera mostrar un mensaje al usuario
+    }
+  }
 
   Widget _buildMapScreen() {
-  if (_currentPosition == null) {
-    return const Center(child: CircularProgressIndicator());
-  }
-  return fmap.FlutterMap(
-    options: fmap.MapOptions(
-      center: latlng.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-      zoom: 13.0,
-    ),
-    children: [
-      fmap.TileLayer(
-        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        subdomains: ['a', 'b', 'c'],
-      ),
-      fmap.MarkerLayer(
-        markers: [
-          fmap.Marker(
-            width: 80.0,
-            height: 80.0,
-            point: latlng.LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-            child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
-          ),
+    if (_currentPosition == null) {
+      return const Center(
+          child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: Colors.red),
+          SizedBox(height: 10),
+          Text("Obteniendo ubicación...", style: TextStyle(color: Colors.white70)),
         ],
+      ));
+    }
+    return fmap.FlutterMap(
+      options: fmap.MapOptions(
+        initialCenter: latlng.LatLng(
+            _currentPosition!.latitude, _currentPosition!.longitude),
+        initialZoom: 14.0, // Zoom un poco más cercano
       ),
-    ],
-  );
-}
+      children: [
+        fmap.TileLayer(
+          urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains: const ['a', 'b', 'c'],
+        ),
+        fmap.MarkerLayer(
+          markers: [
+            fmap.Marker(
+              width: 80.0,
+              height: 80.0,
+              point: latlng.LatLng(
+                  _currentPosition!.latitude, _currentPosition!.longitude),
+              child: const Icon(Icons.location_pin,
+                  color: Colors.redAccent, size: 45), // Icono más grande y color diferente
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
-  Widget _buildHomeScreen() {
+  Widget _buildSearchHomeScreenContent() { // Renombrado para claridad
     return Stack(
       fit: StackFit.expand,
       children: [
         Image.asset(
-          'assets/images/boxing_bg.jpg', // Asegúrate de que esta imagen exista en tu proyecto
+          'assets/images/boxing_bg.jpg',
           fit: BoxFit.cover,
         ),
-        Container(color: Colors.black.withOpacity(0.6)),
+        Container(color: Colors.black.withOpacity(0.65)), // Un poco más de opacidad
         Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -106,17 +134,18 @@ void initState() {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Organiza y encuentra combates de Boxeo al instante',
+                  'Encuentra tu Próximo Combate', // Título más directo
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 30, // Un poco más grande
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
+                    letterSpacing: 1.1,
                   ),
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Conecta con rivales, promotores y gimnasios. Participa en peleas equilibradas, entrena con los mejores y escala en el ranking.',
+                  'Conecta con rivales de tu nivel y ciudad. ¡Prepárate para el ring!', // Texto más corto y motivador
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -125,78 +154,81 @@ void initState() {
                 ),
                 const SizedBox(height: 32),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Buscador de ciudad
                     Expanded(
                       child: TextField(
                         controller: searchController,
-                        style: const TextStyle(color: Colors.black), // Texto en negro
+                        style: const TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
-                          hintText: 'Ciudad, gimnasio o boxeador',
-                          hintStyle: const TextStyle(color: Colors.grey),
+                          hintText: 'Ciudad o nombre del boxeador',
+                          hintStyle: const TextStyle(color: Colors.black54),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: Colors.white.withOpacity(0.9),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
                           ),
+                          prefixIcon: Icon(Icons.search, color: Colors.black54),
                           contentPadding: const EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 12), // Ajusta la altura
+                              vertical: 15, horizontal: 12),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    // Selector de peso
+                    const SizedBox(width: 10),
                     Container(
-                      height: 48, // Asegura que tenga la misma altura que el buscador
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white10,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white54),
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: DropdownButton<String>(
-                        value: selectedWeight,
-                        items: ['Peso pluma', 'Peso ligero', 'Peso medio']
-                            .map((e) => DropdownMenuItem(
-                                  value: e,
-                                  child: Text(e, style: const TextStyle(color: Colors.white)),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedWeight = value!;
-                          });
-                        },
-                        dropdownColor: Colors.black,
-                        underline: Container(),
-                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Botón de buscar
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FighterListScreen(
-                              selectedWeight: selectedWeight,
-                              city: searchController.text,
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Buscar Boxeadores',
-                        style: TextStyle(color: Colors.white), // Texto en blanco
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedWeight,
+                          icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
+                          dropdownColor: Colors.white,
+                          style: const TextStyle(color: Colors.black87, fontSize: 16),
+                          items: ['Peso pluma', 'Peso ligero', 'Peso medio', 'Peso pesado', 'Cualquiera'] // Añadido "Cualquiera"
+                              .map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedWeight = newValue!;
+                            });
+                          },
+                        ),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 24),
+                 SizedBox( // Botón de búsqueda más prominente
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.person_search_outlined, color: Colors.white),
+                    label: const Text('Buscar Boxeadores', style: TextStyle(fontSize: 16, color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                       shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FighterListScreen(
+                            selectedWeight: selectedWeight == 'Cualquiera' ? null : selectedWeight, // Enviar null si es "Cualquiera"
+                            city: searchController.text.trim(),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -209,32 +241,49 @@ void initState() {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex], // Cambia entre pantallas según el índice
+      // El AppBar se puede definir dentro de cada pantalla individual si se necesita
+      // o aquí si es común a todas las pantallas del BottomNav
+      body: IndexedStack( // Usar IndexedStack para mantener el estado de las pantallas
+        index: _currentIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          if (mounted) { // Buena práctica verificar `mounted`
+            setState(() {
+              _currentIndex = index;
+            });
+          }
         },
         backgroundColor: Colors.black,
-        selectedItemColor: Colors.red,
-        unselectedItemColor: Colors.white70,
+        selectedItemColor: Colors.redAccent, // Un tono de rojo más vibrante
+        unselectedItemColor: Colors.white60, // Un gris más claro para mejor contraste
+        type: BottomNavigationBarType.fixed, // Para que todos los items sean visibles
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person), // Icono diferente cuando está activo
             label: 'Perfil',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.map),
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map),
             label: 'Mapa',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            icon: Icon(Icons.search_outlined), // Cambiado de home a search para reflejar la acción
+            activeIcon: Icon(Icons.search),
+            label: 'Buscar', // Etiqueta más clara
+          ),
+          BottomNavigationBarItem( // NUEVO ITEM
+            icon: Icon(Icons.list_alt_outlined),
+            activeIcon: Icon(Icons.list_alt),
+            label: 'Combates',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
             label: 'Chats',
           ),
         ],
