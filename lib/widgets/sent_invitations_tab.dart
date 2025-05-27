@@ -1,3 +1,4 @@
+import 'dart:async'; // Importa Timer
 import 'package:flutter/material.dart';
 import 'package:face2face_app/models/combat_invitation_model.dart';
 import 'package:face2face_app/services/combat_service.dart';
@@ -12,20 +13,31 @@ class SentInvitationsTab extends StatefulWidget {
 
 class _SentInvitationsTabState extends State<SentInvitationsTab>
     with AutomaticKeepAliveClientMixin<SentInvitationsTab> {
-
   final CombatService _combatService = CombatService();
   List<CombatInvitation>? _sentInvitations;
   bool _isLoading = true;
   String? _error;
+  Timer? _refreshTimer; // Agrega un temporizador
 
   @override
   void initState() {
     super.initState();
     _loadSentInvitations();
+    _startAutoRefresh(); // Inicia el temporizador
   }
 
   @override
-  bool get wantKeepAlive => true; // Mantiene el estado de la pestaña
+  void dispose() {
+    _refreshTimer?.cancel(); // Cancela el temporizador al destruir el widget
+    super.dispose();
+  }
+
+  void _startAutoRefresh() {
+    // Configura el temporizador para refrescar cada 30 segundos (puedes ajustar el tiempo)
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      _loadSentInvitations(showLoadingIndicator: false); // Refresca sin mostrar el indicador de carga
+    });
+  }
 
   Future<void> _loadSentInvitations({bool showLoadingIndicator = true}) async {
     if (!mounted) return; // Si el widget no está montado, no hacer nada
@@ -41,7 +53,8 @@ class _SentInvitationsTabState extends State<SentInvitationsTab>
       final invitations = await _combatService.getSentInvitations();
       if (mounted) {
         setState(() {
-          _sentInvitations = invitations; // Reemplazar la lista con los nuevos datos
+          // Filtrar invitaciones rechazadas
+          _sentInvitations = invitations.where((invitation) => invitation.status != 'rejected').toList();
           _isLoading = false;
         });
       }
@@ -53,10 +66,6 @@ class _SentInvitationsTabState extends State<SentInvitationsTab>
         });
       }
       print("Error en _loadSentInvitations: $e");
-      // Opcional: Mostrar un SnackBar global si el error es persistente
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('No se pudieron cargar las invitaciones enviadas: ${e.toString()}')),
-      // );
     }
   }
 
@@ -202,33 +211,6 @@ class _SentInvitationsTabState extends State<SentInvitationsTab>
                         backgroundColor: _getStatusColor(invitation.status),
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       ),
-                      // Opcional: Botón para cancelar una invitación PENDIENTE
-                      if (invitation.status == 'pending') ...[
-                        const SizedBox(width: 8),
-                        TextButton(
-                          onPressed: () async {
-                            // TODO: Implementar lógica y endpoint para cancelar una invitación enviada
-                            // bool success = await _combatService.cancelSentInvitation(invitation.id);
-                            // if (success && mounted) {
-                            //   ScaffoldMessenger.of(context).showSnackBar(
-                            //     const SnackBar(content: Text('Invitación cancelada.')),
-                            //   );
-                            //   _loadSentInvitations(showLoadingIndicator: false);
-                            // } else if(mounted) {
-                            //    ScaffoldMessenger.of(context).showSnackBar(
-                            //     const SnackBar(content: Text('No se pudo cancelar la invitación.')),
-                            //   );
-                            // }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Cancelar invitación (Pendiente de implementar)')),
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          ),
-                          child: Text('Cancelar', style: TextStyle(color: Colors.redAccent.shade100)),
-                        ),
-                      ]
                     ],
                   ),
                 ],
@@ -255,4 +237,7 @@ class _SentInvitationsTabState extends State<SentInvitationsTab>
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true; // Implementación requerida por AutomaticKeepAliveClientMixin
 }
