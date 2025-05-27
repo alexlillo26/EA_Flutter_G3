@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:face2face_app/models/combat_invitation_model.dart';
 import 'package:face2face_app/services/combat_service.dart';
+import 'package:face2face_app/session.dart'; // Para determinar el oponente
 
 class SentInvitationsTab extends StatefulWidget {
   const SentInvitationsTab({super.key});
@@ -9,9 +10,13 @@ class SentInvitationsTab extends StatefulWidget {
   State<SentInvitationsTab> createState() => _SentInvitationsTabState();
 }
 
-class _SentInvitationsTabState extends State<SentInvitationsTab> {
+class _SentInvitationsTabState extends State<SentInvitationsTab>
+    with AutomaticKeepAliveClientMixin<SentInvitationsTab> {
+
   final CombatService _combatService = CombatService();
-  Future<List<CombatInvitation>>? _sentInvitationsFuture;
+  List<CombatInvitation>? _sentInvitations;
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -19,14 +24,43 @@ class _SentInvitationsTabState extends State<SentInvitationsTab> {
     _loadSentInvitations();
   }
 
-  void _loadSentInvitations() {
-    if (mounted) {
+  @override
+  bool get wantKeepAlive => true; // Mantiene el estado de la pestaña
+
+  Future<void> _loadSentInvitations({bool showLoadingIndicator = true}) async {
+    if (!mounted) return; // Si el widget no está montado, no hacer nada
+
+    if (showLoadingIndicator) {
       setState(() {
-        _sentInvitationsFuture = _combatService.getSentInvitations();
+        _isLoading = true;
+        _error = null; // Limpiar errores previos al recargar
       });
+    }
+
+    try {
+      final invitations = await _combatService.getSentInvitations();
+      if (mounted) {
+        setState(() {
+          _sentInvitations = invitations; // Reemplazar la lista con los nuevos datos
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+      print("Error en _loadSentInvitations: $e");
+      // Opcional: Mostrar un SnackBar global si el error es persistente
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('No se pudieron cargar las invitaciones enviadas: ${e.toString()}')),
+      // );
     }
   }
 
+  // --- Funciones de ayuda para UI ---
   String _getStatusText(String status) {
     switch (status) {
       case 'pending':
@@ -35,8 +69,10 @@ class _SentInvitationsTabState extends State<SentInvitationsTab> {
         return 'Aceptada';
       case 'rejected':
         return 'Rechazada';
+      case 'completed': // Si aplica
+        return 'Completada';
       default:
-        return status.toUpperCase();
+        return status.isNotEmpty ? status[0].toUpperCase() + status.substring(1) : 'Desconocido';
     }
   }
 
@@ -45,160 +81,172 @@ class _SentInvitationsTabState extends State<SentInvitationsTab> {
       case 'pending':
         return Colors.orangeAccent.shade200;
       case 'accepted':
-        return Colors.green.shade300;
+        return Colors.green.shade400; // Un verde más brillante para aceptadas
       case 'rejected':
-        return Colors.redAccent.shade100;
+        return Colors.redAccent.shade200;
+      case 'completed':
+        return Colors.blueGrey.shade300;
       default:
-        return Colors.grey;
+        return Colors.grey.shade500;
     }
+  }
+
+  // Determina el nombre del oponente para mostrarlo en la lista de invitaciones enviadas
+  String _getOpponentDisplayNameForSent(CombatInvitation invitation) {
+    // En invitaciones enviadas, el usuario actual (Session.userId) es el creador.
+    // El nombre del oponente ya debería estar en invitation.opponentName
+    // gracias al factory CombatInvitation.fromJson.
+    return invitation.opponentName.isNotEmpty ? invitation.opponentName : "Oponente no especificado";
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<CombatInvitation>>(
-      future: _sentInvitationsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Colors.red));
-        } else if (snapshot.hasError) {
-          return Center(
-              child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text('Error al cargar invitaciones enviadas: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white70)),
-          ));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
-              child: Text('No has enviado ninguna invitación aún.',
-                  style: TextStyle(color: Colors.white, fontSize: 16)));
-        }
+    super.build(context); // Necesario para AutomaticKeepAliveClientMixin
 
-        List<CombatInvitation> invitations = snapshot.data!;
-        return RefreshIndicator(
-          onRefresh: () async {
-            _loadSentInvitations();
-          },
-          color: Colors.red,
-          backgroundColor: Colors.grey[900],
-          child: ListView.builder(
-            padding: const EdgeInsets.all(10.0),
-            itemCount: invitations.length,
-            itemBuilder: (context, index) {
-              final invitation = invitations[index];
-              // Para invitaciones enviadas, el 'opponent' es a quien se la enviaste.
-              // Necesitas asegurarte que CombatInvitation.fromJson() puede obtener el opponentName.
-              // Si tu backend en 'getSentInvitations' ya populates 'opponent',
-              // y CombatInvitation.fromJson puede extraer opponent.name, esto funcionará.
-              // De lo contrario, necesitarás ajustar el modelo o la lógica aquí para obtener el nombre del oponente.
-              // Por ahora, asumimos que invitation.opponentName está disponible o es manejado por el modelo
-              String opponentNameDisplay = "Oponente Desconocido";
-              if (invitation.opponentId.isNotEmpty) {
-                 // Si tu modelo no tiene opponentName directamente pero sí el ID,
-                 // podrías necesitar buscarlo o ajustar el modelo.
-                 // Por ahora, si el modelo lo incluye, se usa.
-                 // Este es un placeholder, necesitas la lógica correcta en tu modelo.
-                 // Asumiremos que el fromJson de CombatInvitation ha cargado opponentName
-                 // y si no, caerá en el default.
-                 // El modelo CombatInvitation necesita acceso a opponent.name desde el JSON
-                 // o podrías pasar el currentUserId al fromJson y determinar quién es el oponente.
+    if (_isLoading && _sentInvitations == null) {
+      return const Center(child: CircularProgressIndicator(color: Colors.red));
+    }
 
-                 // AHORA: CombatInvitation.fromJson necesita recibir currentUserId
-                 // para determinar si el nombre a mostrar es creatorName o opponentName.
-                 // En `getSentInvitations` currentUserId es el `creatorId`.
-                 // Entonces `invitation.opponentName` (si lo añades al modelo) sería lo correcto.
-                 // Por ahora, voy a asumir que tu `CombatInvitation` tiene un `opponentName`.
-                 // Si no, necesitas adaptar el modelo o esta UI.
-                 // Vamos a suponer que el fromJson es suficientemente inteligente para que
-                 // invitation.opponentName tenga el nombre del oponente.
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, color: Colors.redAccent.shade100, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Error al cargar invitaciones enviadas:',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white60, fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                label: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+                onPressed: _loadSentInvitations,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600),
+              )
+            ],
+          ),
+        ),
+      );
+    }
 
-                 // Si el `fromJson` actual pone el nombre del oponente en `opponentName`
-                 // (necesitarías añadir `opponentName` al modelo CombatInvitation y poblarlo en fromJson)
-                 // opponentNameDisplay = invitation.opponentName; // Si tu modelo tiene esto
-                 
-                 // Si no tienes opponentName en el modelo CombatInvitation, necesitarás
-                 // que tu API /api/combat/sent-invitations devuelva el nombre del oponente
-                 // y que CombatInvitation.fromJson() lo parsee y lo asigne.
-                 // Por ahora, usamos un placeholder si no está disponible en el modelo.
-                 // LA SOLUCIÓN IDEAL: el `CombatInvitation.fromJson` debería recibir el `currentUserId`
-                 // y determinar si el `creator` o el `opponent` del JSON es el "otro" usuario.
-                 // En este caso (`SentInvitationsTab`), el usuario actual es el creador.
-                 // El modelo `CombatInvitation` ya tiene `creatorName` y `opponentId`.
-                 // Necesitamos el `opponentName`.
-                 // Asegúrate que el `CombatInvitation.fromJson` llene `opponentName`.
-                 //  `opponentName: opponentInfo['name'] ?? 'Oponente Desconocido'` debe estar en el modelo.
+    if (_sentInvitations == null || _sentInvitations!.isEmpty) {
+      return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.outgoing_mail, size: 48, color: Colors.white54),
+              const SizedBox(height: 16),
+              const Text('No has enviado ninguna invitación aún.',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              const SizedBox(height: 10),
+               ElevatedButton.icon(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  label: const Text('Recargar', style: TextStyle(color: Colors.white)),
+                  onPressed: _loadSentInvitations,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade400),
+                )
+            ],
+          )
+        );
+    }
 
-                 // Suponiendo que CombatInvitation tiene un campo opponentName:
-                 // opponentNameDisplay = invitation.opponentName; // Si existe en el modelo
+    return RefreshIndicator(
+      onRefresh: () => _loadSentInvitations(showLoadingIndicator: false),
+      color: Colors.red,
+      backgroundColor: Colors.grey[900],
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 16.0),
+        itemCount: _sentInvitations!.length,
+        itemBuilder: (context, index) {
+          final invitation = _sentInvitations![index];
+          final opponentDisplayName = _getOpponentDisplayNameForSent(invitation);
 
-                 // MODIFICACIÓN: Para que funcione con el CombatInvitation actual,
-                 // que tiene creatorName y opponentId, pero no opponentName explícito.
-                 // Necesitamos que el backend, en la ruta getSentInvitations, popule el opponent
-                 // y que el fromJson en CombatInvitation lo parsee.
-                 // El `fromJson` que te di antes ya intenta esto con `opponentInfo`.
-                 // Así que `invitation.opponentName` (si lo añades a la clase) debería funcionar.
-
-                 // Si el modelo `CombatInvitation` tiene `creatorName` y `opponentName`:
-                 // Para invitaciones enviadas, el "otro" es el `opponentName`.
-                 opponentNameDisplay = invitation.opponentName; // Asumimos que esto existe en tu modelo
-              }
-
-
-              return Card(
-                color: Colors.grey[850]?.withOpacity(0.9),
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          return Card(
+            color: Colors.grey[850]?.withOpacity(0.95),
+            margin: const EdgeInsets.symmetric(vertical: 8.0),
+            elevation: 3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Invitación enviada a: $opponentDisplayName',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  _buildInfoRow(Icons.calendar_today_outlined, 'Fecha:', invitation.formattedDate),
+                  _buildInfoRow(Icons.access_time_outlined, 'Hora:', invitation.formattedTime),
+                  _buildInfoRow(Icons.location_on_outlined, 'Gimnasio:', invitation.gymName),
+                  _buildInfoRow(Icons.shield_outlined, 'Nivel:', invitation.level),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text('Invitación enviada a: $opponentNameDisplay', // Mostrar nombre del oponente
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      _buildInfoRow(Icons.calendar_today_outlined, 'Fecha:', invitation.formattedDate),
-                      _buildInfoRow(Icons.access_time_outlined, 'Hora:', invitation.formattedTime),
-                      _buildInfoRow(Icons.fitness_center_outlined, 'Gimnasio:', invitation.gymName),
-                      _buildInfoRow(Icons.shield_outlined, 'Nivel:', invitation.level),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Chip(
-                            label: Text(_getStatusText(invitation.status), style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-                            backgroundColor: _getStatusColor(invitation.status),
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          ),
-                          // Aquí podrías añadir un botón de "Cancelar invitación" si el estado es 'pending'
-                          // y si tu backend soporta esa acción.
-                          // Ejemplo:
-                          // if (invitation.status == 'pending')
-                          //   TextButton(onPressed: () { /* Lógica para cancelar */ }, child: Text('Cancelar'))
-                        ],
+                      Chip(
+                        label: Text(_getStatusText(invitation.status), style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
+                        backgroundColor: _getStatusColor(invitation.status),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       ),
+                      // Opcional: Botón para cancelar una invitación PENDIENTE
+                      if (invitation.status == 'pending') ...[
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: () async {
+                            // TODO: Implementar lógica y endpoint para cancelar una invitación enviada
+                            // bool success = await _combatService.cancelSentInvitation(invitation.id);
+                            // if (success && mounted) {
+                            //   ScaffoldMessenger.of(context).showSnackBar(
+                            //     const SnackBar(content: Text('Invitación cancelada.')),
+                            //   );
+                            //   _loadSentInvitations(showLoadingIndicator: false);
+                            // } else if(mounted) {
+                            //    ScaffoldMessenger.of(context).showSnackBar(
+                            //     const SnackBar(content: Text('No se pudo cancelar la invitación.')),
+                            //   );
+                            // }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Cancelar invitación (Pendiente de implementar)')),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          ),
+                          child: Text('Cancelar', style: TextStyle(color: Colors.redAccent.shade100)),
+                        ),
+                      ]
                     ],
                   ),
-                ),
-              );
-            },
-          ),
-        );
-      },
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white70, size: 16),
-          const SizedBox(width: 8),
+          Icon(icon, color: Colors.white70, size: 18),
+          const SizedBox(width: 10),
           Text('$label ', style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
           Expanded(
             child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 14), overflow: TextOverflow.ellipsis),
