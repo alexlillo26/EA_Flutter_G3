@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert'; // Para codificar/decodificar JSON
 import 'package:http/http.dart' as http; // Para hacer llamadas API
-import '../session.dart'; 
-
-
+import 'package:url_launcher/url_launcher.dart'; // Para abrir URLs
+import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // Para el icono de Google
+import '../session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,13 +13,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controladores para los campos de texto
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  // Variable de estado para manejar el indicador de carga
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
-  // Función para manejar el proceso de login
   Future<void> _loginUser() async {
     if (!emailController.text.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -82,18 +80,57 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
         );
-        setState(() {
-          _isLoading = false;
-        });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error de conexión: ${e.toString()}')),
       );
-      setState(() {
-        _isLoading = false;
-      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isGoogleLoading = true;
+    });
+
+    // Modifica esta URL base si tu backend está en otro puerto o host
+    const String baseUrl = 'http://localhost:9000';
+    // El `origin` debe coincidir con el que configuraste en el backend para Flutter
+    final String googleAuthUrl = '$baseUrl/api/auth/google?origin=flutter_local_web';
+
+    final Uri uri = Uri.parse(googleAuthUrl);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(
+        uri,
+        // Para Flutter Web, es importante usar webOnlyWindowName para asegurar
+        // que la redirección ocurra en la misma ventana/pestaña si es posible,
+        // o que se maneje correctamente la nueva pestaña.
+        // Para mobile, esto se ignora o se maneja diferente por el S.O.
+        webOnlyWindowName: '_self', // Para intentar abrir en la misma pestaña en web
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo abrir la URL: $googleAuthUrl')),
+      );
+    }
+    // No cambies _isGoogleLoading a false aquí,
+    // la app se recargará con los tokens en la URL si el login es exitoso.
+    // O el usuario volverá manualmente si cancela.
+    // Considera un timeout o una forma de resetear si el usuario cierra la pestaña.
+     Future.delayed(const Duration(seconds: 10), () {
+      if (mounted && _isGoogleLoading) {
+        setState(() {
+          _isGoogleLoading = false;
+        });
+      }
+    });
   }
 
   @override
@@ -103,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/images/boxing_bg.jpg',
+            'assets/images/boxing_bg.jpg', // Asegúrate que esta imagen exista
             fit: BoxFit.cover,
           ),
           Container(color: Colors.black.withOpacity(0.6)),
@@ -125,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         onPressed: () {
-                          Navigator.pushNamed(context, '/gym-login'); // Navega a la pantalla de gimnasios
+                          Navigator.pushNamed(context, '/gym-login');
                         },
                         child: const Text(
                           '¿Eres un gimnasio?',
@@ -149,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: const InputDecoration(
                       hintText: 'Correo Electrónico',
                       filled: true,
-                      fillColor: Colors.black,
+                      fillColor: Colors.black, // Fondo negro para los campos
                       hintStyle: TextStyle(color: Colors.white60),
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.email, color: Colors.white70),
@@ -164,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: const InputDecoration(
                       hintText: 'Contraseña',
                       filled: true,
-                      fillColor: Colors.black,
+                      fillColor: Colors.black, // Fondo negro
                       hintStyle: TextStyle(color: Colors.white60),
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.lock, color: Colors.white70),
@@ -189,6 +226,28 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Ingresar',
                               style: TextStyle(color: Colors.white, fontSize: 16),
                             ),
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Botón de Iniciar Sesión con Google
+                  SizedBox(
+                    width: double.infinity,
+                    child: _isGoogleLoading
+                        ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+                        : ElevatedButton.icon(
+                            icon: const FaIcon(FontAwesomeIcons.google, color: Colors.white),
+                            label: const Text(
+                              'Iniciar sesión con Google',
+                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue, // Color de Google
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: _signInWithGoogle,
                           ),
                   ),
                   const SizedBox(height: 16),
