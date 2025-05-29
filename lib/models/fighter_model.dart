@@ -4,6 +4,7 @@ class Fighter {
   final String weight;
   final String email;
   final String city; // <- nuevo campo
+  bool isFollowed; // Indica si el luchador está seguido por el usuario
 
   Fighter({
     required this.id,
@@ -11,6 +12,8 @@ class Fighter {
     required this.weight,
     required this.email,
     required this.city,
+    this.isFollowed = false, // Valor predeterminado
+
   });
 
    factory Fighter.fromJson(Map<String, dynamic> json) {
@@ -20,6 +23,7 @@ class Fighter {
       weight: json['weight'] ?? 'Peso no especificado',
       email: json['email'] ?? 'Sin email',
       city: json['city'] ?? 'Ciudad desconocida',
+      isFollowed: json['isFollowed'] ?? false, // Asume que el JSON puede contener este campo
     );
   }
 }

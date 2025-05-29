@@ -6,8 +6,6 @@ import 'package:face2face_app/session.dart';
 import 'package:face2face_app/models/fighter_model.dart';
 import 'package:face2face_app/screens/combat_chat_screen.dart';
 import 'package:face2face_app/screens/create_combat_screen.dart';
-// Si tienes una pantalla para ver el perfil de otro usuario, impórtala aquí
-// import 'view_profile_screen.dart';
 
 class FighterListScreen extends StatefulWidget {
   final String? selectedWeight;
@@ -35,8 +33,6 @@ class _FighterListScreenState extends State<FighterListScreen> {
   Future<List<Fighter>> _fetchFilteredFighters() async {
     final token = Session.token;
     if (token == null) {
-      // Es buena idea manejar este caso, quizás mostrando un mensaje al usuario
-      // o redirigiendo al login si la sesión es estrictamente necesaria aquí.
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error de autenticación. Por favor, inicia sesión de nuevo.')),
       );
@@ -47,7 +43,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
 
     if (widget.selectedWeight != null &&
         widget.selectedWeight!.isNotEmpty &&
-        widget.selectedWeight != 'Cualquiera') { // Asumiendo que 'Cualquiera' es un valor para no filtrar por peso
+        widget.selectedWeight != 'Cualquiera') {
       queryParams['weight'] = widget.selectedWeight!;
     }
     if (widget.city != null && widget.city!.isNotEmpty) {
@@ -58,7 +54,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
 
-    print('Buscando boxeadores con URL: $url'); // Útil para depuración
+    print('Buscando boxeadores con URL: $url');
 
     final response = await http.get(
       url,
@@ -83,6 +79,46 @@ class _FighterListScreenState extends State<FighterListScreen> {
       print('Error al buscar boxeadores: ${response.statusCode} - ${response.body}');
       throw Exception(
           'Error al cargar los peleadores (código: ${response.statusCode})');
+    }
+  }
+
+  Future<void> _followUser(String userId) async {
+    final token = Session.token;
+    if (token == null) {
+      throw Exception('Usuario no autenticado');
+    }
+
+    final url = Uri.parse('$API_BASE_URL/users/$userId/follow');
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al seguir al usuario: ${response.body}');
+    }
+  }
+
+  Future<void> _unfollowUser(String userId) async {
+    final token = Session.token;
+    if (token == null) {
+      throw Exception('Usuario no autenticado');
+    }
+
+    final url = Uri.parse('$API_BASE_URL/users/$userId/unfollow');
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Error al dejar de seguir al usuario: ${response.body}');
     }
   }
 
@@ -127,7 +163,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                             horizontal: 12, vertical: 8),
                       ),
                       onPressed: () {
-                        Navigator.pop(context); // Regresa a la pantalla de filtros (HomeScreen)
+                        Navigator.pop(context);
                       },
                       child: const Text('Editar Filtros', style: TextStyle(color: Colors.white)),
                     ),
@@ -158,9 +194,8 @@ class _FighterListScreenState extends State<FighterListScreen> {
                         itemCount: fighters.length,
                         itemBuilder: (context, index) {
                           final fighter = fighters[index];
-                          // Evitar mostrar el propio usuario en la lista si es el caso
                           if (fighter.id == Session.userId) {
-                            return const SizedBox.shrink(); // No mostrarse a uno mismo
+                            return const SizedBox.shrink();
                           }
                           return Card(
                             color: Colors.grey[850]?.withOpacity(0.9),
@@ -197,7 +232,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      const Icon(Icons.scale, // Icono para peso
+                                      const Icon(Icons.scale,
                                           color: Colors.white70, size: 16),
                                       const SizedBox(width: 8),
                                       Text(
@@ -208,9 +243,9 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 16),
-                                  Wrap( // Usar Wrap para que los botones se ajusten si no caben
-                                    spacing: 8.0, // Espacio horizontal entre botones
-                                    runSpacing: 8.0, // Espacio vertical si hay varias líneas
+                                  Wrap(
+                                    spacing: 8.0,
+                                    runSpacing: 8.0,
                                     alignment: WrapAlignment.end,
                                     children: [
                                       ElevatedButton.icon(
@@ -228,7 +263,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                               MaterialPageRoute(
                                                 builder: (context) =>
                                                     CombatChatScreen(
-                                                  combatId: fighter.id, // Usando el ID del boxeador como ID de sala de chat temporalmente
+                                                  combatId: fighter.id,
                                                   userToken: Session.token!,
                                                   currentUserId: Session.userId!,
                                                   currentUsername: Session.username!,
@@ -258,9 +293,6 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                               horizontal: 12, vertical: 8),
                                         ),
                                         onPressed: () {
-                                          // TODO: Implementar navegación a la pantalla de ver perfil del boxeador
-                                          // Necesitarás una pantalla que acepte un userId
-                                          // y muestre el perfil de ese usuario.
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                             SnackBar(
@@ -277,40 +309,59 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                       ),
                                       ElevatedButton.icon(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
+                                          backgroundColor: Colors.redAccent,
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 12, vertical: 8),
                                         ),
                                         onPressed: () {
-                                          if (Session.userId != null && Session.username != null) { // Verifica también Session.username
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    CreateCombatScreen(
-                                                  // Pasa los IDs, no los nombres, si tu backend espera IDs
-                                                  creatorId: Session.userId!, // Asume que creator es el ID del usuario actual
-                                                  creatorName: fighter.id, 
-                                                  opponentId: fighter.id, 
-                                                  opponentName: fighter.name, // Nombre del oponente
-                                                ),  
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                               builder: (context) => CreateCombatScreen(
+                                                opponentId: fighter.id,
+                                                creatorId: Session.userId!, // Agrega el parámetro obligatorio
+                                                creatorName: Session.username!, // Agrega el nombre del creador
+                                                opponentName: fighter.name, // Nombre del oponente
                                               ),
-                                            );
-                                          } else {
-                                             ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                  content: Text(
-                                                      'Error: Datos de sesión incompletos para crear un combate.')),
+                                            ),   
+                                          );
+                                        },
+                                        icon: const Icon(Icons.sports_martial_arts,
+                                            color: Colors.white, size: 18),
+                                        label: const Text(
+                                          'Desafiar',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ),
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: fighter.isFollowed ? Colors.grey : Colors.green,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        ),
+                                        onPressed: () async {
+                                          try {
+                                            if (fighter.isFollowed) {
+                                              await _unfollowUser(fighter.id);
+                                            } else {
+                                              await _followUser(fighter.id);
+                                            }
+                                            setState(() {
+                                              fighter.isFollowed = !fighter.isFollowed;
+                                            });
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Error: ${e.toString()}')),
                                             );
                                           }
                                         },
-                                        icon: const Icon(
-                                            Icons.sports_kabaddi_outlined, // Icono de combate/desafío
-                                            color: Colors.white, size: 18),
-                                        label: const Text(
-                                          'Desafiar', // Cambiado de "Crear Combate" a "Desafiar"
-                                          style: TextStyle(color: Colors.white),
+                                        icon: Icon(
+                                          fighter.isFollowed ? Icons.person_remove : Icons.person_add,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                        label: Text(
+                                          fighter.isFollowed ? 'Unfollow' : 'Follow',
+                                          style: const TextStyle(color: Colors.white),
                                         ),
                                       ),
                                     ],
