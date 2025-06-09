@@ -90,6 +90,7 @@ class _CombatHistoryTabState extends State<CombatHistoryTab> {
 
         List<CombatInvitation> combatHistory = snapshot.data!;
         
+        
         // Si el backend no filtra por status 'completed' o 'rejected', hazlo aquí:
         // combatHistory = combatHistory.where((c) => c.status == 'completed' || c.status == 'rejected').toList();
         // if (combatHistory.isEmpty) {
@@ -122,7 +123,7 @@ class _CombatHistoryTabState extends State<CombatHistoryTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Combate vs: $opponentDisplayName',
+                      Text('Combate vs: ${combat.opponentName}',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
