@@ -43,6 +43,8 @@ class _UpcomingCombatsTabState extends State<UpcomingCombatsTab> {
     return FutureBuilder<List<CombatInvitation>>(
       future: _upcomingCombatsFuture,
       builder: (context, snapshot) {
+        print('Entrando al builder de UpcomingCombatsTab');
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Colors.red));
         } else if (snapshot.hasError) {
@@ -59,6 +61,19 @@ class _UpcomingCombatsTabState extends State<UpcomingCombatsTab> {
         }
 
         List<CombatInvitation> upcomingCombats = snapshot.data!;
+        print('Todos los combates aceptados:');
+        for (var c in upcomingCombats) {
+          print('${c.status} - ${c.date.toIso8601String()}');
+        }
+
+        upcomingCombats = upcomingCombats.where((c) {
+          return c.status == 'accepted' && c.date.isAfter(DateTime.now());
+        }).toList();
+
+        print('Solo futuros:');
+        for (var c in upcomingCombats) {
+          print('${c.status} - ${c.date.toIso8601String()}');
+        }
         // Filtrar para asegurar que solo se muestren los aceptados (el backend ya debería hacerlo)
         // y que la fecha sea futura (el backend ya debería hacerlo con /future)
         // List<CombatInvitation> filteredCombats = upcomingCombats.where((c) => 

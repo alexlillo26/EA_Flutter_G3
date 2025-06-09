@@ -36,15 +36,16 @@ class CombatInvitation {
     // El backend en getInvitationsHandler populates 'creator', 'opponent', 'gym'
     // Asegúrate que los nombres de los campos y la estructura coincidan.
     Map<String, dynamic> creatorInfo = json['creator'] is Map ? json['creator'] : {'_id': json['creator'], 'name': 'Desconocido'};
-    Map<String, dynamic> opponentInfo = json['opponent'] is Map ? json['opponent'] : {'_id': json['opponent'], 'name': 'Desconocido'};
+    Map<String, dynamic> opponentInfo = json['opponent'] is Map ? json['opponent'] : {'_id': json['opponent'], 'username': 'Desconocido'};
     Map<String, dynamic> gymInfo = json['gym'] is Map ? json['gym'] : {'_id': json['gym'], 'name': 'Gimnasio Desconocido'};
+    
 
     return CombatInvitation(
       id: json['_id'] ?? '',
       creatorId: creatorInfo['_id'] ?? '',
       creatorName: creatorInfo['name'] ?? 'Creador Desconocido',
       opponentId: opponentInfo['_id'] ?? '',
-      opponentName: opponentInfo['name'] ?? 'Oponente Desconocido',
+      opponentName: opponentInfo['username'] ?? opponentInfo['name'] ?? 'Oponente Desconocido',
       date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
       time: json['time'] ?? 'Hora no especificada',
       level: json['level'] ?? 'Nivel no especificado',
