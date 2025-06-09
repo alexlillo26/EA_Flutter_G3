@@ -6,6 +6,10 @@ import 'chat_list_screen.dart';
 import 'combat_management_screen.dart'; // <--- NUEVA IMPORTACIÓN
 import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:latlong2/latlong.dart' as latlng;
+import 'package:http/http.dart' as http; // Para realizar solicitudes HTTP
+import 'dart:convert'; // Para decodificar respuestas JSON
+
+const String API_BASE_URL = 'http://localhost:9000/api'; // Define la URL base de tu API
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,13 +20,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Position? _currentPosition;
-  // final bool _showMap = false; // No parece usarse
-
   final TextEditingController searchController = TextEditingController();
   String selectedWeight = 'Peso pluma'; // Asegúrate que este es un valor válido inicial
-
-  // El orden de los BottomNavigationBarItems ahora será:
-  // 0: Perfil, 1: Mapa, 2: Home (Búsqueda), 3: Mis Combates <NUEVO>, 4: Chats
   int _currentIndex = 2; // Índice inicial (Home - Búsqueda)
 
   @override
@@ -31,7 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _getCurrentLocation();
   }
 
-  // Actualizar la lista de pantallas para incluir CombatManagementScreen
   List<Widget> get _screens => [
         const ProfileScreen(), // Índice 0
         _buildMapScreen(), // Índice 1
@@ -41,12 +39,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ];
 
   void _getCurrentLocation() async {
-    // ... (tu código existente para obtener la ubicación) ...
-     try {
+    try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         print('Servicio de ubicación deshabilitado');
-        // Considera mostrar un mensaje al usuario
         return;
       }
 
@@ -55,14 +51,12 @@ class _HomeScreenState extends State<HomeScreen> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           print('Permiso de ubicación denegado');
-          // Considera mostrar un mensaje al usuario
           return;
         }
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         print('Permiso de ubicación denegado permanentemente');
-        // Considera mostrar un mensaje al usuario y guiarlo a la configuración de la app
         return;
       }
 
@@ -75,7 +69,35 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       print('Error al obtener la ubicación: $e');
-      // Considera mostrar un mensaje al usuario
+    }
+  }
+
+  Future<List<latlng.LatLng>> _fetchGymLocations() async {
+    final response = await http.get(Uri.parse('$API_BASE_URL/gym?page=1&pageSize=50')); // Endpoint del backend
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> gymsResponse = json.decode(response.body);
+      final List<dynamic> gyms = gymsResponse['gyms'];
+      List<latlng.LatLng> gymLocations = [];
+
+      for (var gym in gyms) {
+        final city = gym['place'];
+        final geoResponse = await http.get(Uri.parse(
+            'https://nominatim.openstreetmap.org/search?q=$city&format=json&limit=1'));
+
+        if (geoResponse.statusCode == 200) {
+          final List<dynamic> geoData = json.decode(geoResponse.body);
+          if (geoData.isNotEmpty) {
+            final lat = double.parse(geoData[0]['lat']);
+            final lon = double.parse(geoData[0]['lon']);
+            gymLocations.add(latlng.LatLng(lat, lon));
+          }
+        }
+      }
+
+      return gymLocations;
+    } else {
+      throw Exception('Error al obtener gimnasios');
     }
   }
 
@@ -91,34 +113,68 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ));
     }
-    return fmap.FlutterMap(
-      options: fmap.MapOptions(
-        initialCenter: latlng.LatLng(
-            _currentPosition!.latitude, _currentPosition!.longitude),
-        initialZoom: 14.0, // Zoom un poco más cercano
-      ),
-      children: [
-        fmap.TileLayer(
-          urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          subdomains: const ['a', 'b', 'c'],
-        ),
-        fmap.MarkerLayer(
-          markers: [
-            fmap.Marker(
-              width: 80.0,
-              height: 80.0,
-              point: latlng.LatLng(
-                  _currentPosition!.latitude, _currentPosition!.longitude),
-              child: const Icon(Icons.location_pin,
-                  color: Colors.redAccent, size: 45), // Icono más grande y color diferente
+
+    return FutureBuilder<List<latlng.LatLng>>(
+      future: _fetchGymLocations(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.red),
+          );
+        } else if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error al cargar gimnasios: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white70),
             ),
-          ],
-        ),
-      ],
+          );
+        } else if (snapshot.hasData) {
+          final gymLocations = snapshot.data!;
+          return fmap.FlutterMap(
+            options: fmap.MapOptions(
+              initialCenter: latlng.LatLng(
+                  _currentPosition!.latitude, _currentPosition!.longitude),
+              initialZoom: 14.0,
+            ),
+            children: [
+              fmap.TileLayer(
+                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
+              ),
+              fmap.MarkerLayer(
+                markers: [
+                  fmap.Marker(
+                    width: 80.0,
+                    height: 80.0,
+                    point: latlng.LatLng(
+                        _currentPosition!.latitude, _currentPosition!.longitude),
+                    child: const Icon(Icons.location_pin,
+                        color: Colors.redAccent, size: 45),
+                  ),
+                  ...gymLocations.map((location) => fmap.Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: location,
+                        child: const Icon(Icons.location_pin,
+                            color: Colors.black, size: 45),
+                      )),
+                ],
+              ),
+            ],
+          );
+        } else {
+          return const Center(
+            child: Text(
+              'No se encontraron gimnasios',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        }
+      },
     );
   }
 
-  Widget _buildSearchHomeScreenContent() { // Renombrado para claridad
+  Widget _buildSearchHomeScreenContent() {
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -126,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
           'assets/images/boxing_bg.jpg',
           fit: BoxFit.cover,
         ),
-        Container(color: Colors.black.withOpacity(0.65)), // Un poco más de opacidad
+        Container(color: Colors.black.withOpacity(0.65)),
         Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -134,10 +190,10 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text(
-                  'Encuentra tu Próximo Combate', // Título más directo
+                  'Encuentra tu Próximo Combate',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 30, // Un poco más grande
+                    fontSize: 30,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     letterSpacing: 1.1,
@@ -145,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Conecta con rivales de tu nivel y ciudad. ¡Prepárate para el ring!', // Texto más corto y motivador
+                  'Conecta con rivales de tu nivel y ciudad. ¡Prepárate para el ring!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -187,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
                           dropdownColor: Colors.white,
                           style: const TextStyle(color: Colors.black87, fontSize: 16),
-                          items: ['Peso pluma', 'Peso ligero', 'Peso medio', 'Peso pesado', 'Cualquiera'] // Añadido "Cualquiera"
+                          items: ['Peso pluma', 'Peso ligero', 'Peso medio', 'Peso pesado', 'Cualquiera']
                               .map((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
@@ -205,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                 SizedBox( // Botón de búsqueda más prominente
+                SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.person_search_outlined, color: Colors.white),
@@ -213,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                       shape: RoundedRectangleBorder(
+                      shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -222,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => FighterListScreen(
-                            selectedWeight: selectedWeight == 'Cualquiera' ? null : selectedWeight, // Enviar null si es "Cualquiera"
+                            selectedWeight: selectedWeight == 'Cualquiera' ? null : selectedWeight,
                             city: searchController.text.trim(),
                           ),
                         ),
@@ -241,29 +297,27 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // El AppBar se puede definir dentro de cada pantalla individual si se necesita
-      // o aquí si es común a todas las pantallas del BottomNav
-      body: IndexedStack( // Usar IndexedStack para mantener el estado de las pantallas
+      body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          if (mounted) { // Buena práctica verificar `mounted`
+          if (mounted) {
             setState(() {
               _currentIndex = index;
             });
           }
         },
         backgroundColor: Colors.black,
-        selectedItemColor: Colors.redAccent, // Un tono de rojo más vibrante
-        unselectedItemColor: Colors.white60, // Un gris más claro para mejor contraste
-        type: BottomNavigationBarType.fixed, // Para que todos los items sean visibles
+        selectedItemColor: Colors.redAccent,
+        unselectedItemColor: Colors.white60,
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person), // Icono diferente cuando está activo
+            activeIcon: Icon(Icons.person),
             label: 'Perfil',
           ),
           BottomNavigationBarItem(
@@ -272,11 +326,11 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Mapa',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined), // Cambiado de home a search para reflejar la acción
+            icon: Icon(Icons.search_outlined),
             activeIcon: Icon(Icons.search),
-            label: 'Buscar', // Etiqueta más clara
+            label: 'Buscar',
           ),
-          BottomNavigationBarItem( // NUEVO ITEM
+          BottomNavigationBarItem(
             icon: Icon(Icons.list_alt_outlined),
             activeIcon: Icon(Icons.list_alt),
             label: 'Combates',
