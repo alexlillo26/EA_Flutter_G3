@@ -207,57 +207,58 @@ class CombatService {
       throw Exception('Error al cargar próximos combates');
     }
   }
-  Future<List<CombatInvitation>> getCombatHistory() async {
-    final token = Session.token;
-    final currentUserId = Session.userId; // Necesario para el endpoint y para el factory del modelo
+ Future<List<CombatInvitation>> getCombatHistory() async {
+  final token = Session.token;
+  final currentUserId = Session.userId;
 
-    if (token == null || currentUserId == null) {
-      print("Error: Usuario no autenticado o ID de usuario no disponible para el historial.");
-      throw Exception('Usuario no autenticado');
-    }
-
-    // Endpoint para obtener el historial de combates del usuario.
-    // Podrías necesitar añadir un query param como ?status=completed o ?status=finished
-    // o tu backend podría tener un endpoint específico /api/combat/history
-    // Usando el endpoint existente y asumiendo que podemos filtrar o que devuelve estados:
-    final url = Uri.parse('$API_BASE_URL/combat/boxer/$currentUserId?pageSize=50'); // Pedimos más para el historial
-    print('Fetching combat history from: $url');
-
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final dynamic responseBody = json.decode(response.body);
-      List<dynamic> combatsData = [];
-
-      // El endpoint /api/combat/boxer/{boxerId} devuelve un objeto { combats, totalPages }
-      if (responseBody is Map<String, dynamic> && responseBody.containsKey('combats')) {
-        combatsData = responseBody['combats'];
-      } else {
-        print('Formato de respuesta inesperado para historial de combates: ${response.body}');
-        throw Exception('Formato de respuesta inesperado para historial de combates');
-      }
-      
-      if (combatsData is List) {
-        // Aquí podrías querer filtrar adicionalmente por estados como 'completed', 'rejected', 'cancelled'
-        // si el backend no lo hace por ti.
-        return combatsData
-            .map((data) => CombatInvitation.fromJson(data, currentUserId)) // Reutilizamos el modelo
-            .where((combat) => combat.status == 'completed' || combat.status == 'rejected') // Ejemplo de filtro cliente
-            .toList();
-      } else {
-         print('CombatData no es una lista después del parseo para historial: $combatsData');
-         throw Exception('Los datos de historial procesados no son una lista.');
-      }
-
-    } else {
-      print('Error al cargar historial de combates: ${response.statusCode} - ${response.body}');
-      throw Exception('Error al cargar historial de combates');
-    }
+  if (token == null || currentUserId == null) {
+    print("Error: Usuario no autenticado o ID de usuario no disponible para el historial.");
+    throw Exception('Usuario no autenticado');
   }
+
+  // Usa el endpoint correcto del backend para historial
+  final url = Uri.parse('$API_BASE_URL/combat/history/user/$currentUserId?pageSize=50');
+  print('Fetching combat history from: $url');
+
+  final response = await http.get(
+    url,
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    final dynamic responseBody = json.decode(response.body);
+    List<dynamic> combatsData = [];
+
+    // Ajusta según la estructura real de la respuesta de tu API
+    if (responseBody is Map<String, dynamic> &&
+        responseBody.containsKey('data') &&
+        responseBody['data'] is Map &&
+        responseBody['data'].containsKey('combats')) {
+      combatsData = responseBody['data']['combats'];
+    } else if (responseBody is Map<String, dynamic> && responseBody.containsKey('combats')) {
+      combatsData = responseBody['combats'];
+    } else if (responseBody is List) {
+      combatsData = responseBody;
+    } else {
+      print('Formato de respuesta inesperado para historial de combates: ${response.body}');
+      throw Exception('Formato de respuesta inesperado para historial de combates');
+    }
+
+    if (combatsData is List) {
+      // Ya no filtramos por estado, el backend lo hace
+      return combatsData
+          .map((data) => CombatInvitation.fromJson(data, currentUserId))
+          .toList();
+    } else {
+      print('CombatData no es una lista después del parseo para historial: $combatsData');
+      throw Exception('Los datos de historial procesados no son una lista.');
+    }
+  } else {
+    print('Error al cargar historial de combates: ${response.statusCode} - ${response.body}');
+    throw Exception('Error al cargar historial de combates');
+  }
+}
 }
