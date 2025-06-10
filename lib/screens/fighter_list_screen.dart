@@ -1,3 +1,4 @@
+// lib/screens/fighter_list_screen.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
@@ -6,8 +7,7 @@ import 'package:face2face_app/session.dart';
 import 'package:face2face_app/models/fighter_model.dart';
 import 'package:face2face_app/screens/combat_chat_screen.dart';
 import 'package:face2face_app/screens/create_combat_screen.dart';
-// Si tienes una pantalla para ver el perfil de otro usuario, impórtala aquí
-// import 'view_profile_screen.dart';
+import 'package:face2face_app/services/chat_service.dart'; // <--- IMPORTACIÓN AÑADIDA
 
 class FighterListScreen extends StatefulWidget {
   final String? selectedWeight;
@@ -25,6 +25,7 @@ class FighterListScreen extends StatefulWidget {
 
 class _FighterListScreenState extends State<FighterListScreen> {
   late Future<List<Fighter>> _fightersFuture;
+  final ChatService _chatService = ChatService(); // <--- INSTANCIA DE CHATSERVICE AÑADIDA
 
   @override
   void initState() {
@@ -33,13 +34,16 @@ class _FighterListScreenState extends State<FighterListScreen> {
   }
 
   Future<List<Fighter>> _fetchFilteredFighters() async {
-    final token = Session.token;
+    final token = Session.token; //
     if (token == null) {
       // Es buena idea manejar este caso, quizás mostrando un mensaje al usuario
       // o redirigiendo al login si la sesión es estrictamente necesaria aquí.
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error de autenticación. Por favor, inicia sesión de nuevo.')),
-      );
+      // Comprobación de 'mounted' antes de usar ScaffoldMessenger si esto puede ser llamado antes de que el widget esté completamente inicializado.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error de autenticación. Por favor, inicia sesión de nuevo.')),
+        );
+      }
       throw Exception('Usuario no autenticado');
     }
 
@@ -54,11 +58,11 @@ class _FighterListScreenState extends State<FighterListScreen> {
       queryParams['city'] = widget.city!;
     }
 
-    final url = Uri.parse('$API_BASE_URL/users/search').replace(
+    final url = Uri.parse('$API_BASE_URL/users/search').replace( //
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
 
-    print('Buscando boxeadores con URL: $url'); // Útil para depuración
+    // print('Buscando boxeadores con URL: $url'); // Útil para depuración
 
     final response = await http.get(
       url,
@@ -73,14 +77,14 @@ class _FighterListScreenState extends State<FighterListScreen> {
 
       if (responseBody['success'] == true && responseBody['users'] != null) {
         final List<dynamic> usersData = responseBody['users'];
-        return usersData.map((data) => Fighter.fromJson(data)).toList();
+        return usersData.map((data) => Fighter.fromJson(data)).toList(); //
       } else {
-        print('Respuesta no exitosa o sin clave "users": ${response.body}');
+        // print('Respuesta no exitosa o sin clave "users": ${response.body}');
         throw Exception(
             'Error en la respuesta del API de búsqueda: ${responseBody['message'] ?? 'Formato inesperado'}');
       }
     } else {
-      print('Error al buscar boxeadores: ${response.statusCode} - ${response.body}');
+      // print('Error al buscar boxeadores: ${response.statusCode} - ${response.body}');
       throw Exception(
           'Error al cargar los peleadores (código: ${response.statusCode})');
     }
@@ -97,7 +101,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/images/boxing_bg.jpg',
+            'assets/images/boxing_bg.jpg', //
             fit: BoxFit.cover,
           ),
           Container(color: Colors.black.withOpacity(0.7)),
@@ -159,7 +163,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                         itemBuilder: (context, index) {
                           final fighter = fighters[index];
                           // Evitar mostrar el propio usuario en la lista si es el caso
-                          if (fighter.id == Session.userId) {
+                          if (fighter.id == Session.userId) { //
                             return const SizedBox.shrink(); // No mostrarse a uno mismo
                           }
                           return Card(
@@ -174,7 +178,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    fighter.name,
+                                    fighter.name, //
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,
@@ -188,7 +192,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                           color: Colors.white70, size: 16),
                                       const SizedBox(width: 8),
                                       Text(
-                                        fighter.city,
+                                        fighter.city, //
                                         style: const TextStyle(
                                             color: Colors.white70, fontSize: 14),
                                       ),
@@ -201,7 +205,7 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                           color: Colors.white70, size: 16),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Peso: ${fighter.weight}',
+                                        'Peso: ${fighter.weight}', //
                                         style: const TextStyle(
                                             color: Colors.white70, fontSize: 14),
                                       ),
@@ -219,29 +223,57 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 12, vertical: 8),
                                         ),
-                                        onPressed: () {
-                                          if (Session.userId != null &&
-                                              Session.username != null &&
-                                              Session.token != null) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    CombatChatScreen(
-                                                  combatId: fighter.id, // Usando el ID del boxeador como ID de sala de chat temporalmente
-                                                  userToken: Session.token!,
-                                                  currentUserId: Session.userId!,
-                                                  currentUsername: Session.username!,
-                                                ),
-                                              ),
-                                            );
+                                        onPressed: () async { // <--- MODIFICADO PARA SER ASYNC
+                                          if (Session.userId != null && //
+                                              Session.username != null && //
+                                              Session.token != null) { //
+                                            
+                                            // --- INICIO DE NUEVA LÓGICA ---
+                                            try {
+                                              // Opcional: Mostrar un indicador de carga o feedback
+                                              // if (mounted) {
+                                              //   ScaffoldMessenger.of(context).showSnackBar(
+                                              //     const SnackBar(content: Text('Iniciando chat...'), duration: Duration(seconds: 1)),
+                                              //   );
+                                              // }
+
+                                              final String conversationId = await _chatService.initiateChatSession(fighter.id); // fighter.id es el opponentId
+                                              
+                                              if (mounted) { // Verificar si el widget sigue montado
+                                                // ScaffoldMessenger.of(context).removeCurrentSnackBar(); // Quitar el SnackBar si se usó
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        CombatChatScreen( //
+                                                      // Se asume que CombatChatScreen será modificado para aceptar estos parámetros
+                                                      conversationId: conversationId, 
+                                                      userToken: Session.token!, //
+                                                      currentUserId: Session.userId!, //
+                                                      currentUsername: Session.username!, //
+                                                      opponentId: fighter.id,    
+                                                      opponentName: fighter.name, //
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            } catch (e) {
+                                               if (mounted) {
+                                                 // ScaffoldMessenger.of(context).removeCurrentSnackBar(); // Quitar si se usó
+                                                 ScaffoldMessenger.of(context).showSnackBar(
+                                                   SnackBar(content: Text('Error al iniciar chat: ${e.toString()}')),
+                                                 );
+                                               }
+                                            }
+                                            // --- FIN DE NUEVA LÓGICA ---
+
                                           } else {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                  content: Text(
-                                                      'Error: Datos de sesión incompletos para el chat.')),
-                                            );
+                                            if (mounted) { // Asegurar que el widget está montado para mostrar SnackBar
+                                               ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                    content: Text('Error: Datos de sesión incompletos para el chat.')),
+                                              );
+                                            }
                                           }
                                         },
                                         icon: const Icon(Icons.mail_outline,
@@ -259,13 +291,11 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                         ),
                                         onPressed: () {
                                           // TODO: Implementar navegación a la pantalla de ver perfil del boxeador
-                                          // Necesitarás una pantalla que acepte un userId
-                                          // y muestre el perfil de ese usuario.
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                             SnackBar(
                                                 content: Text(
-                                                    'Ver perfil de ${fighter.name} (pendiente).')),
+                                                    'Ver perfil de ${fighter.name} (pendiente).')), //
                                           );
                                         },
                                         icon: const Icon(Icons.person_outline,
@@ -282,15 +312,15 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                               horizontal: 12, vertical: 8),
                                         ),
                                         onPressed: () {
-                                          if (Session.userId != null && Session.username != null) { // Verifica también Session.username
+                                          if (Session.userId != null && Session.username != null) { //
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder: (context) =>
-                                                    CreateCombatScreen(
+                                                    CreateCombatScreen( //
                                                   // Pasa los IDs, no los nombres, si tu backend espera IDs
                                                   creatorId: Session.userId!, // Asume que creator es el ID del usuario actual
-                                                  creatorName: fighter.id, 
+                                                  creatorName: Session.username!, // <--- CORRECCIÓN APLICADA AQUÍ
                                                   opponentId: fighter.id, 
                                                   opponentName: fighter.name, // Nombre del oponente
                                                 ),  
