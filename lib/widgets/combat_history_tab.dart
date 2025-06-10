@@ -137,12 +137,64 @@ class _CombatHistoryTabState extends State<CombatHistoryTab> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                           Chip(
-                            label: Text(_getStatusText(combat.status), style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-                            backgroundColor: _getStatusColor(combat.status),
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          ),
-                          // Aquí podrías añadir un botón para "Ver Resultado" o "Detalles del Combate"
+                          if (combat.status == 'accepted')
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                              onPressed: () async{
+                                final ratingService = CombatService();
+                                final currentUserId = Session.userId!;
+                                final toUserId = combat.creatorId == currentUserId ? combat.opponentId : combat.creatorId;
+
+                                await showDialog(
+                                  context: context,
+                                  builder: (context) => _RatingDialog(
+                                    opponentName: opponentDisplayName,
+                                    onSubmit: (ratingData) async {
+                                        print('creatorId: ${combat.creatorId}, opponentId: ${combat.opponentId}, currentUserId: $currentUserId, toUserId: $toUserId');
+
+                                      try {
+                                        await ratingService.sendRating(
+                                          combatId: combat.id,
+                                          fromUserId: currentUserId,
+                                          toUserId: toUserId,
+                                          punctuality: ratingData['punctuality'],
+                                          attitude: ratingData['attitude'],
+                                          technique: ratingData['technique'],
+                                          intensity: ratingData['intensity'],
+                                          sportmanship: ratingData['sportmanship'],
+                                          comment: ratingData['comment'],
+                                        );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('¡Valoración enviada correctamente!')),
+                                          );
+                                          _loadCombatHistory(); // Opcional: recarga el historial
+                                        }
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Error al enviar la valoración: $e')),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                );
+                                // Aquí irá la lógica de valoración
+                              },
+                              child: const Text('Valorar', style: TextStyle(fontWeight: FontWeight.bold)),
+                            )
+                          else
+                            Chip(
+                              label: Text(_getStatusText(combat.status), style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                              backgroundColor: _getStatusColor(combat.status),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            ),
                         ],
                       ),
                     ],
@@ -169,6 +221,101 @@ class _CombatHistoryTabState extends State<CombatHistoryTab> {
           ),
         ],
       ),
+    );
+  }
+}
+class _RatingDialog extends StatefulWidget {
+  final void Function(Map<String, dynamic> ratingData) onSubmit;
+  final String opponentName;
+
+  const _RatingDialog({required this.onSubmit, required this.opponentName});
+
+  @override
+  State<_RatingDialog> createState() => _RatingDialogState();
+}
+
+class _RatingDialogState extends State<_RatingDialog> {
+  final _commentController = TextEditingController();
+  final Map<String, int> _ratings = {
+    'Puntualidad': 0,
+    'Actitud': 0,
+    'Técnica': 0,
+    'Intensidad': 0,
+    'Deportividad': 0,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.grey[900],
+      title: Text('Valorar a ${widget.opponentName}', style: const TextStyle(color: Colors.white)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ..._ratings.keys.map((attr) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(child: Text(attr, style: const TextStyle(color: Colors.white))),
+                  for (int i = 1; i <= 5; i++)
+                    IconButton(
+                      icon: Icon(
+                        Icons.star,
+                        color: _ratings[attr]! >= i ? Colors.amber : Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _ratings[attr] = i;
+                        });
+                      },
+                    ),
+                ],
+              ),
+            )),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _commentController,
+              maxLines: 2,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Comentario (opcional)',
+                labelStyle: const TextStyle(color: Colors.white70),
+                filled: true,
+                fillColor: Colors.grey[800],
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: const Text('Cancelar', style: TextStyle(color: Colors.white70)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          child: const Text('Enviar'),
+          onPressed: () {
+            if (_ratings.values.any((v) => v == 0)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Por favor, valora todos los atributos')),
+              );
+              return;
+            }
+            widget.onSubmit({
+              'punctuality': _ratings['Puntualidad'],
+              'attitude': _ratings['Actitud'],
+              'technique': _ratings['Técnica'],
+              'intensity': _ratings['Intensidad'],
+              'sportmanship': _ratings['Deportividad'],
+              'comment': _commentController.text,
+            });
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
     );
   }
 }

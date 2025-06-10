@@ -261,4 +261,44 @@ class CombatService {
     throw Exception('Error al cargar historial de combates');
   }
 }
+Future<void> sendRating({
+    required String combatId,
+    required String fromUserId,
+    required String toUserId,
+    required int punctuality,
+    required int attitude,
+    required int technique,
+    required int intensity,
+    required int sportmanship,
+    String? comment,
+  }) async {
+    final token = Session.token;
+    final url = Uri.parse('$API_BASE_URL/ratings');
+    final body = {
+      'combat': combatId,
+      'from': fromUserId,
+      'to': toUserId,
+      'punctuality': punctuality,
+      'attitude': attitude,
+      'technique': technique,
+      'intensity': intensity,
+      'sportmanship': sportmanship,
+      if (comment != null && comment.isNotEmpty) 'comment': comment,
+    };
+    
+    print('Enviando rating: $body');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode(body),
+    );
+
+    if (response.statusCode != 201) {
+      throw Exception('Error al enviar la valoración: ${response.body}');
+    }
+  }
 }
