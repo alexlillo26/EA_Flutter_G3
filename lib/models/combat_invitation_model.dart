@@ -39,12 +39,12 @@ class CombatInvitation {
     Map<String, dynamic> opponentInfo = json['opponent'] is Map ? json['opponent'] : {'_id': json['opponent'], 'username': 'Desconocido'};
     Map<String, dynamic> gymInfo = json['gym'] is Map ? json['gym'] : {'_id': json['gym'], 'name': 'Gimnasio Desconocido'};
     
-
+print('JSON recibido: $json');
     return CombatInvitation(
       id: json['_id'] ?? '',
-      creatorId: creatorInfo['_id'] ?? '',
+      creatorId: creatorInfo['id'] ?? creatorInfo['_id'] ?? '',
       creatorName: creatorInfo['name'] ?? 'Creador Desconocido',
-      opponentId: opponentInfo['_id'] ?? '',
+      opponentId: opponentInfo['id'] ?? opponentInfo['_id'] ?? '',
       opponentName: opponentInfo['username'] ?? opponentInfo['name'] ?? 'Oponente Desconocido',
       date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
       time: json['time'] ?? 'Hora no especificada',
