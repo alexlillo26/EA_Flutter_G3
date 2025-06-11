@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
-import '../utils/session_manager.dart'; // <-- Nuevo import
+import '../session.dart'; // <-- Usar solo session.dart
 
 const backendUrl = 'http://localhost:9000'; // Cambia si es necesario
 const clientIdWeb = '604478234012-b81frmvc1b411j3kaj4luv25oblg6l6t.apps.googleusercontent.com';
@@ -72,11 +72,12 @@ Future<void> signInWithGoogleWeb({required bool isGym, bool isRegister = false})
       // --- FIN DECODIFICACIÓN ---
 
       // Establece la sesión global
-      Session.setSession(
+      await Session.setSession(
         newToken: data['token'],
         newRefreshToken: data['refreshToken'],
         newUserId: userId,
         newUsername: username,
+        newGymId: data['gym']?['_id'], // Si aplica para gym
       );
 
       print("✅ Usuario autenticado y tokens del backend almacenados en Session.");

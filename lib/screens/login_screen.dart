@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert'; // Para codificar/decodificar JSON
 import 'package:http/http.dart' as http; // Para hacer llamadas API
 import '../services/auth_service_web.dart';
-import '../utils/session_manager.dart'; //
+import '../session.dart'; // <-- Import correcto
+//
 // Clase global para guardar sesión
 
 
@@ -52,11 +53,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        Session.setSession(
+        await Session.setSession(
           newToken: body['token'],
           newRefreshToken: body['refreshToken'],
           newUserId: body['userId'],
           newUsername: body['username'],
+          newGymId: null,
         );
 
         if (Session.token == null || Session.token!.isEmpty ||

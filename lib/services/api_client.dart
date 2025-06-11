@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../utils/session_manager.dart'; // <-- Nuevo import
+import '../session.dart'; // <-- Usar solo session.dart
 
 class ApiClient {
   final Dio _dio;

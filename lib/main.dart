@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'routes.dart';
 import 'screens/gym_login_screen.dart'; // Importa la nueva pantalla de gimnasios
 import 'screens/login_screen.dart'; // Importa donde está Session
-import 'utils/session_manager.dart'; // <-- Nuevo import
+import 'session.dart'; // <-- Import correcto
 import 'screens/gym_home_screen.dart';
 import 'screens/edit_profile_screen.dart';
 

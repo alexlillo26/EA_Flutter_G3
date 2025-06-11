@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:face2face_app/config/app_config.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service_web.dart';
+import '../session.dart'; // <-- Import correcto
 
 class GymLoginScreen extends StatefulWidget {
   const GymLoginScreen({super.key});
@@ -44,6 +45,15 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
 
         if (response.statusCode == 200 || response.statusCode == 201) {
         final body = jsonDecode(response.body);      
+        if (body['token'] != null && (body['gymId'] != null || body['userId'] != null)) {
+          await Session.setSession(
+            newToken: body['token'],
+            newRefreshToken: body['refreshToken'],
+            newUserId: body['gymId'] ?? body['userId'],
+            newUsername: body['name'],
+            newGymId: body['gymId'],
+          );
+        }
         } else {
         String errorMessage = 'Error desconocido';
         try {

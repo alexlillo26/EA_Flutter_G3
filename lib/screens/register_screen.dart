@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service_web.dart'; // <-- Importa el servicio Google
+import '../session.dart'; // <-- Import correcto
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -50,6 +51,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     if (response.statusCode == 201) {
+      final body = json.decode(response.body);
+      if (body['token'] != null && body['userId'] != null) {
+        await Session.setSession(
+          newToken: body['token'],
+          newRefreshToken: body['refreshToken'],
+          newUserId: body['userId'],
+          newUsername: body['username'],
+          newGymId: null,
+        );
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Usuario registrado correctamente')),
       );
