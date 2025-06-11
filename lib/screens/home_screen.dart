@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: DropdownButton<String>(
                         value: selectedWeight,
-                        items: ['Peso pluma', 'Peso ligero', 'Peso medio']
+                        items: ['Peso pluma', 'Peso ligero', 'Peso medio', 'Peso pesado']
                             .map((e) => DropdownMenuItem(
                                   value: e,
                                   child: Text(e, style: const TextStyle(color: Colors.white)),

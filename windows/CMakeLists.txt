@@ -57,6 +57,12 @@ add_subdirectory("runner")
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# Add these lines after you set EPHEMERAL_DIR or before add_executable/add_library
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/flutter/ephemeral
+  ${CMAKE_CURRENT_SOURCE_DIR}/flutter/ephemeral/.plugin_symlinks/geolocator_windows/windows/include
+)
+
 
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can

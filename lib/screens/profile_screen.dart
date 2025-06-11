@@ -6,7 +6,7 @@ class ProfileScreen extends StatelessWidget {
     'Correo': 'juan@example.com',
     'Nacimiento': '15/05/2001',
     'Experiencia': 'Amateur',
-    'Peso': 'Peso medio',
+    'Peso': 'Peso ligero',
     'Ubicación': 'Madrid'
   };
 

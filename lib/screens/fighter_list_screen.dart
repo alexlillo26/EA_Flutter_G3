@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/fighter_model.dart';
-import 'combat_chat_screen.dart'; // ✅ Importa la pantalla de chat
-import 'create_combat_screen.dart'; // ✅ Importa la pantalla de crear combate
-import 'login_screen.dart'; // ✅ Para usar Session.token
+import 'combat_chat_screen.dart';
+import 'create_combat_screen.dart';
+import 'login_screen.dart';
+import '../utils/session_manager.dart'; // <-- Añade este import
+import '../services/api_client.dart'; // <-- Importa tu ApiClient
 
 class FighterListScreen extends StatefulWidget {
   final String selectedWeight;
@@ -30,16 +31,14 @@ class _FighterListScreenState extends State<FighterListScreen> {
   }
 
   Future<List<Fighter>> fetchFightersByWeight(String weight) async {
-    final response = await http.get(
-      Uri.parse('http://localhost:9000/api/users?page=1&pageSize=50'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${Session.token}',
-      },
+    // Sustituye http.get por apiClient.get
+    final response = await apiClient.get(
+      '/users',
+      queryParameters: {'page': 1, 'pageSize': 50},
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body)['users'];
+      final List<dynamic> data = response.data['users'];
       final fighters = data.map((json) => Fighter.fromJson(json)).toList();
 
       return fighters

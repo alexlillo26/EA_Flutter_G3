@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../services/auth_service_web.dart';
 
 class GymLoginScreen extends StatefulWidget {
   const GymLoginScreen({Key? key}) : super(key: key);
@@ -188,6 +189,58 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
                             ),
                           ),
                   ),
+                  const SizedBox(height: 16),
+                  // --- Google OAuth Buttons ---
+                  if (_isRegistering)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
+                        label: const Text(
+                          'Registrarse con Google',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white),
+                          backgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await signInWithGoogleWeb(isGym: true);
+                          if (mounted) {
+                            Navigator.pushReplacementNamed(context, '/home');
+                          }
+                        },
+                      ),
+                    ),
+                  if (!_isRegistering)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
+                        label: const Text(
+                          'Iniciar sesión con Google',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white),
+                          backgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await signInWithGoogleWeb(isGym: true);
+                          if (mounted) {
+                            Navigator.pushReplacementNamed(context, '/home');
+                          }
+                        },
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   GestureDetector(
                     onTap: () {

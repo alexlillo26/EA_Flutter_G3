@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/auth_service_web.dart'; // <-- Importa el servicio Google
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -114,7 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               DropdownButtonFormField<String>(
                 value: selectedWeight,
-                items: ['Peso pluma', 'Peso medio', 'Peso pesado']
+                items: ['Peso pluma', 'Peso ligero', 'Peso medio', 'Peso pesado']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
                 onChanged: (value) {
@@ -137,6 +138,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: const Text(
                   'Registrarse',
                   style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // --- Google Register Button ---
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
+                  label: const Text(
+                    'Registrarse con Google',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white),
+                    backgroundColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () async {
+                    await signInWithGoogleWeb(isGym: false);
+                    if (context.mounted) {
+                      Navigator.pushReplacementNamed(context, '/home');
+                    }
+                  },
                 ),
               ),
             ],
