@@ -1,13 +1,17 @@
-// lib/screens/fighter_list_screen.dart
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../models/fighter_model.dart';
+import 'combat_chat_screen.dart'; // ✅ Importa la pantalla de chat
+import 'create_combat_screen.dart'; // ✅ Importa la pantalla de crear combate
+import 'login_screen.dart'; // ✅ Para usar Session.token
 import 'package:face2face_app/config/app_config.dart';
 import 'package:face2face_app/session.dart';
 import 'package:face2face_app/models/fighter_model.dart';
 import 'package:face2face_app/screens/combat_chat_screen.dart';
 import 'package:face2face_app/screens/create_combat_screen.dart';
 import 'package:face2face_app/services/chat_service.dart'; // <--- IMPORTACIÓN AÑADIDA
+
 
 class FighterListScreen extends StatefulWidget {
   final String? selectedWeight;

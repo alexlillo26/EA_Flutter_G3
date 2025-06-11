@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert'; // Para codificar/decodificar JSON
 import 'package:http/http.dart' as http; // Para hacer llamadas API
-import '../session.dart'; 
-
+import '../services/auth_service_web.dart';
+import '../utils/session_manager.dart'; //
+// Clase global para guardar sesión
 
 
 class LoginScreen extends StatefulWidget {
@@ -51,10 +52,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        Session.token = body['token'];
-        Session.refreshToken = body['refreshToken'];
-        Session.userId = body['userId'];
-        Session.username = body['username'];
+        Session.setSession(
+          newToken: body['token'],
+          newRefreshToken: body['refreshToken'],
+          newUserId: body['userId'],
+          newUsername: body['username'],
+        );
 
         if (Session.token == null || Session.token!.isEmpty ||
             Session.userId == null || Session.userId!.isEmpty ||
@@ -72,6 +75,9 @@ class _LoginScreenState extends State<LoginScreen> {
           const SnackBar(content: Text('Inicio de sesión exitoso')),
         );
 
+        // ¡IMPORTANTE! Aquí se completa el login.
+        // Las futuras peticiones a la API DEBEN usar apiClient.
+        // El apiClient ya tiene el interceptor para el refresco.
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         String errorMessage = 'Correo o contraseña incorrectos';
@@ -190,6 +196,32 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(color: Colors.white, fontSize: 16),
                             ),
                           ),
+                  ),
+                  const SizedBox(height: 16),
+                  // --- Google OAuth Button ---
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
+                      label: const Text(
+                        'Iniciar sesión con Google',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white),
+                        backgroundColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () async {
+                        await signInWithGoogleWeb(isGym: false);
+                        if (mounted) {
+                          Navigator.pushReplacementNamed(context, '/home');
+                        }
+                      },
+                    ),
                   ),
                   const SizedBox(height: 16),
                   GestureDetector(
