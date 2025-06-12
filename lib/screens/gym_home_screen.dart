@@ -27,7 +27,7 @@ class _GymProfileTabState extends State<GymProfileTab> {
 
   Future<void> fetchGymData() async {
     final response = await http.get(
-      Uri.parse('https://localhost:9000/api/gym/${widget.gymId}'),
+      Uri.parse('http://localhost:9000/api/gym/${widget.gymId}'),
     );
     if (response.statusCode == 200) {
       setState(() {
@@ -150,7 +150,7 @@ class _GymHomeScreenState extends State<GymHomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Center(
               child: Text(
-                'cornella',
+                '',
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),

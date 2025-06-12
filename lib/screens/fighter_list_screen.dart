@@ -8,6 +8,8 @@ import 'package:face2face_app/models/fighter_model.dart';
 import 'package:face2face_app/screens/combat_chat_screen.dart';
 import 'package:face2face_app/screens/create_combat_screen.dart';
 import 'package:face2face_app/services/chat_service.dart'; // <--- IMPORTACIÓN AÑADIDA
+import 'package:face2face_app/screens/profile_screen.dart'; 
+import 'package:face2face_app/screens/fighter_profile_screen.dart';
 
 class FighterListScreen extends StatefulWidget {
   final String? selectedWeight;
@@ -289,13 +291,12 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 12, vertical: 8),
                                         ),
-                                        onPressed: () {
-                                          // TODO: Implementar navegación a la pantalla de ver perfil del boxeador
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                                content: Text(
-                                                    'Ver perfil de ${fighter.name} (pendiente).')), //
+                                       onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => FighterProfileScreen(fighter: fighter),
+                                            ),
                                           );
                                         },
                                         icon: const Icon(Icons.person_outline,
@@ -340,6 +341,36 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                             color: Colors.white, size: 18),
                                         label: const Text(
                                           'Desafiar', // Cambiado de "Crear Combate" a "Desafiar"
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ),
+                                      ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.orange,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        ),
+                                        onPressed: () {
+                                          if (fighter.boxingVideo != null && fighter.boxingVideo!.isNotEmpty) {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                contentPadding: EdgeInsets.zero,
+                                                content: SizedBox(
+                                                  width: 320,
+                                                  height: 180,
+                                                  child: VideoPlayerWidget(videoUrl: fighter.boxingVideo!),
+                                                ),
+                                              ),
+                                            );
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Este boxeador no tiene video subido.')),
+                                            );
+                                          }
+                                        },
+                                        icon: const Icon(Icons.play_circle_fill, color: Colors.white, size: 18),
+                                        label: const Text(
+                                          'Ver video',
                                           style: TextStyle(color: Colors.white),
                                         ),
                                       ),

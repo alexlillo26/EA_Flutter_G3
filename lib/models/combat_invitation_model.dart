@@ -33,25 +33,28 @@ class CombatInvitation {
   String get formattedTime => time; // Asumimos que 'time' ya está en un formato amigable
 
   factory CombatInvitation.fromJson(Map<String, dynamic> json, String currentUserId) {
-    // El backend en getInvitationsHandler populates 'creator', 'opponent', 'gym'
-    // Asegúrate que los nombres de los campos y la estructura coincidan.
-    Map<String, dynamic> creatorInfo = json['creator'] is Map ? json['creator'] : {'_id': json['creator'], 'name': 'Desconocido'};
-    Map<String, dynamic> opponentInfo = json['opponent'] is Map ? json['opponent'] : {'_id': json['opponent'], 'username': 'Desconocido'};
-    Map<String, dynamic> gymInfo = json['gym'] is Map ? json['gym'] : {'_id': json['gym'], 'name': 'Gimnasio Desconocido'};
-    
-print('JSON recibido: $json');
+    Map<String, dynamic> opponentInfo = json['opponent'] is Map
+        ? json['opponent']
+        : {'_id': json['opponent'], 'username': 'Desconocido'};
+
+    String creatorId = currentUserId;
+    String creatorName = 'Tú';
+
+    String opponentId = opponentInfo['_id'] ?? opponentInfo['id'] ?? '';
+    String opponentName = opponentInfo['username'] ?? opponentInfo['name'] ?? 'Oponente Desconocido';
+
     return CombatInvitation(
       id: json['_id'] ?? '',
-      creatorId: creatorInfo['id'] ?? creatorInfo['_id'] ?? '',
-      creatorName: creatorInfo['name'] ?? 'Creador Desconocido',
-      opponentId: opponentInfo['id'] ?? opponentInfo['_id'] ?? '',
-      opponentName: opponentInfo['username'] ?? opponentInfo['name'] ?? 'Oponente Desconocido',
+      creatorId: creatorId,
+      creatorName: creatorName,
+      opponentId: opponentId,
+      opponentName: opponentName,
       date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
       time: json['time'] ?? 'Hora no especificada',
       level: json['level'] ?? 'Nivel no especificado',
-      gymId: gymInfo['_id'] ?? '',
-      gymName: gymInfo['name'] ?? 'Gimnasio Desconocido',
-      status: json['status'] ?? 'pending',
+      gymId: json['gym'] is Map ? json['gym']['_id'] ?? '' : '',
+      gymName: json['gym'] is Map ? json['gym']['name'] ?? '' : '',
+      status: json['status'] ?? '',
     );
   }
 }

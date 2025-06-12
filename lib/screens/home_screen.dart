@@ -73,17 +73,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<List<latlng.LatLng>> _fetchGymLocations() async {
-    final response = await http.get(Uri.parse('$API_BASE_URL/gym?page=1&pageSize=50')); // Endpoint del backend
+    print('Obteniendo gimnasios...');
 
-    if (response.statusCode == 200) {
+    final response = await http.get(Uri.parse('$API_BASE_URL/gym?page=1&pageSize=50')); // Endpoint del backend
+    print('Respuesta del backend: ${response.statusCode}');
+
+   if (response.statusCode == 200) {
       final Map<String, dynamic> gymsResponse = json.decode(response.body);
       final List<dynamic> gyms = gymsResponse['gyms'];
+      print('Gimnasios recibidos: ${gyms.length}');
+
       List<latlng.LatLng> gymLocations = [];
 
       for (var gym in gyms) {
         final city = gym['place'];
+         print('Geocodificando ciudad: $city');
+
         final geoResponse = await http.get(Uri.parse(
             'https://nominatim.openstreetmap.org/search?q=$city&format=json&limit=1'));
+          print('Respuesta Nominatim: ${geoResponse.statusCode}');
 
         if (geoResponse.statusCode == 200) {
           final List<dynamic> geoData = json.decode(geoResponse.body);
@@ -94,9 +102,12 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
       }
+      print('Total ubicaciones: ${gymLocations.length}');
 
       return gymLocations;
     } else {
+      print('Error al obtener gimnasios');
+
       throw Exception('Error al obtener gimnasios');
     }
   }
