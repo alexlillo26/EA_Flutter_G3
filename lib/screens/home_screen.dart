@@ -231,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         controller: searchController,
                         style: const TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
-                          hintText: 'Ciudad o nombre del boxeador',
+                          hintText: 'Ciudad del boxeador',
                           hintStyle: const TextStyle(color: Colors.black54),
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.9),
