@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:face2face_app/config/app_config.dart';
 import 'package:http/http.dart' as http;
-import '../session.dart'; 
+import '../services/auth_service_web.dart';
+import '../session.dart'; // <-- Import correcto
 
 class GymLoginScreen extends StatefulWidget {
   const GymLoginScreen({super.key});
@@ -43,25 +44,16 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-        final body = jsonDecode(response.body);
-        print('Respuesta backend: $body');
-        // Guarda el id del gimnasio si es login (no registro)
-        if (body['gym'] != null && body['gym']['_id'] != null) {
-         Session.gymId = body['gym']['_id'];
-      }
-
-        if (Session.gymId != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(_isRegistering ? 'Registro exitoso' : 'Inicio de sesión exitoso')),
-          );
-          Navigator.pushReplacementNamed(context, '/gym-home');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No se pudo obtener el ID del gimnasio')),
+        final body = jsonDecode(response.body);      
+        if (body['token'] != null && (body['gymId'] != null || body['userId'] != null)) {
+          await Session.setSession(
+            newToken: body['token'],
+            newRefreshToken: body['refreshToken'],
+            newUserId: body['gymId'] ?? body['userId'],
+            newUsername: body['name'],
+            newGymId: body['gymId'],
           );
         }
-        } else if (response.statusCode == 401) {
-        } else if (response.statusCode == 400) {
         } else {
         String errorMessage = 'Error desconocido';
         try {
@@ -201,6 +193,58 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
                             ),
                           ),
                   ),
+                  const SizedBox(height: 16),
+                  // --- Google OAuth Buttons ---
+                  if (_isRegistering)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
+                        label: const Text(
+                          'Registrarse con Google',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white),
+                          backgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await signInWithGoogleWeb(isGym: true);
+                          if (mounted) {
+                            Navigator.pushReplacementNamed(context, '/home');
+                          }
+                        },
+                      ),
+                    ),
+                  if (!_isRegistering)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
+                        label: const Text(
+                          'Iniciar sesión con Google',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white),
+                          backgroundColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await signInWithGoogleWeb(isGym: true);
+                          if (mounted) {
+                            Navigator.pushReplacementNamed(context, '/home');
+                          }
+                        },
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   GestureDetector(
                     onTap: () {

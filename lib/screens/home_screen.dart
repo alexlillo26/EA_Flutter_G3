@@ -3,13 +3,14 @@ import 'package:geolocator/geolocator.dart';
 import 'fighter_list_screen.dart';
 import 'profile_screen.dart';
 import 'chat_list_screen.dart';
-import 'combat_management_screen.dart'; // <--- NUEVA IMPORTACIÓN
+import 'combat_management_screen.dart';
+import 'statistics_screen.dart'; // Import the new screen
 import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:latlong2/latlong.dart' as latlng;
-import 'package:http/http.dart' as http; // Para realizar solicitudes HTTP
-import 'dart:convert'; // Para decodificar respuestas JSON
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-const String API_BASE_URL = 'http://localhost:9000/api'; // Define la URL base de tu API
+const String API_BASE_URL = 'http://localhost:9000/api';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,8 +22,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Position? _currentPosition;
   final TextEditingController searchController = TextEditingController();
-  String selectedWeight = 'Peso pluma'; // Asegúrate que este es un valor válido inicial
-  int _currentIndex = 2; // Índice inicial (Home - Búsqueda)
+  String selectedWeight = 'Peso pluma';
+  int _currentIndex = 2;
 
   @override
   void initState() {
@@ -32,10 +33,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Widget> get _screens => [
         const ProfileScreen(), // Índice 0
-        _buildMapScreen(), // Índice 1
-        _buildSearchHomeScreenContent(), // Índice 2 (Contenido principal de búsqueda)
-        const CombatManagementScreen(), // Índice 3 <--- NUEVA PANTALLA
-        const ChatListScreen(), // Índice 4
+        const StatisticsScreen(), // Índice 1 (New)
+        _buildMapScreen(), // Índice 2
+        _buildSearchHomeScreenContent(), // Índice 3
+        const CombatManagementScreen(), // Índice 4
+        const ChatListScreen(), // Índice 5
       ];
 
   void _getCurrentLocation() async {
@@ -73,10 +75,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<List<latlng.LatLng>> _fetchGymLocations() async {
+
     print('Obteniendo gimnasios...');
 
     final response = await http.get(Uri.parse('$API_BASE_URL/gym?page=1&pageSize=50')); // Endpoint del backend
     print('Respuesta del backend: ${response.statusCode}');
+
 
    if (response.statusCode == 200) {
       final Map<String, dynamic> gymsResponse = json.decode(response.body);
@@ -307,10 +311,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // The original _screens getter is now longer due to the new screen.
+    // The IndexedStack will now have 6 children.
+    final screens = _screens;
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -330,6 +338,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Perfil',
+          ),
+          BottomNavigationBarItem( // New Item
+            icon: Icon(Icons.bar_chart_outlined),
+            activeIcon: Icon(Icons.bar_chart),
+            label: 'Estadísticas',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.map_outlined),

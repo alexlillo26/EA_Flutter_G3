@@ -1,25 +1,25 @@
-// lib/models/combat_invitation_model.dart
-import 'package:intl/intl.dart'; // Para formatear la fecha
+import 'package:face2face_app/session.dart';
+import 'package:intl/intl.dart';
 
 class CombatInvitation {
-  final String id; // ID del combate/invitación
+  final String id;
   final String creatorId;
   final String creatorName;
-  final String opponentId; // Podría ser útil saber quién es el oponente (el usuario actual)
-  final String opponentName; // No es estrictamente necesario si el usuario actual es el oponente
-  final DateTime date; // Fecha y hora del combate
-  final String time;   // Hora como string, tal como la espera/envía el backend
+  final String opponentId;
+  final String opponentName;
+  final DateTime date;
+  final String time;
   final String level;
   final String gymId;
-  final String gymName; // Nombre del gimnasio
-  final String status; // 'pending', 'accepted', 'rejected'
+  final String gymName;
+  final String status;
 
   CombatInvitation({
     required this.id,
     required this.creatorId,
     required this.creatorName,
     required this.opponentId,
-    required this.opponentName, // Aunque no se usa en la UI, puede ser útil para el futuro
+    required this.opponentName,
     required this.date,
     required this.time,
     required this.level,
@@ -28,11 +28,11 @@ class CombatInvitation {
     required this.status,
   });
 
-  // Formateador para mostrar la fecha de manera amigable
   String get formattedDate => DateFormat('dd/MM/yyyy').format(date.toLocal());
-  String get formattedTime => time; // Asumimos que 'time' ya está en un formato amigable
+  String get formattedTime => time;
 
   factory CombatInvitation.fromJson(Map<String, dynamic> json, String currentUserId) {
+
     Map<String, dynamic> opponentInfo = json['opponent'] is Map
         ? json['opponent']
         : {'_id': json['opponent'], 'username': 'Desconocido'};
@@ -55,6 +55,7 @@ class CombatInvitation {
       gymId: json['gym'] is Map ? json['gym']['_id'] ?? '' : '',
       gymName: json['gym'] is Map ? json['gym']['name'] ?? '' : '',
       status: json['status'] ?? '',
+
     );
   }
 }

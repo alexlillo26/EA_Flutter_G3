@@ -213,9 +213,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: () {
-                            Session.token = null;
-                            Session.userId = null;
+                          onPressed: () async {
+                            await Session.clearSession();
                             Navigator.pushNamedAndRemoveUntil(
                               context,
                               '/login',

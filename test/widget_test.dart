@@ -8,11 +8,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:face2face_app/main.dart'; // Ensure this file contains the Face2FaceApp class or update the path to the correct file.
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp() as Widget);
+    await tester.pumpWidget(Face2FaceApp() as Widget); // Use the correct app class name.
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'routes.dart';
 import 'screens/gym_login_screen.dart'; // Importa la nueva pantalla de gimnasios
+import 'screens/login_screen.dart'; // Importa donde está Session
+import 'session.dart'; // <-- Import correcto
 import 'screens/gym_home_screen.dart';
 import 'screens/edit_profile_screen.dart';
 
-void main() {
-  runApp(Face2FaceApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Session.loadSession();
+  runApp(const Face2FaceApp());
 }
 
 class Face2FaceApp extends StatelessWidget {
-  const Face2FaceApp({super.key});
+  const Face2FaceApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
