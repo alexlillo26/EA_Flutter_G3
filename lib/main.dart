@@ -1,11 +1,19 @@
+import 'package:face2face_app/screens/edit_profile_screen.dart';
+import 'package:face2face_app/screens/gym_home_screen.dart';
+import 'package:face2face_app/screens/gym_login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'routes.dart';
-import 'screens/gym_login_screen.dart'; // Importa la nueva pantalla de gimnasios
-import 'screens/gym_home_screen.dart';
-import 'screens/edit_profile_screen.dart';
+import 'services/notification_service.dart'; // Importamos el servicio
 
-void main() {
-  runApp(Face2FaceApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  runApp(const Face2FaceApp());
 }
 
 class Face2FaceApp extends StatelessWidget {
@@ -14,6 +22,8 @@ class Face2FaceApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      // !! CORRECCIÓN AQUÍ: ACCEDEMOS A LA KEY A TRAVÉS DE LA CLASE !!
+      navigatorKey: NotificationService.navigatorKey, 
       title: 'Face2Face',
       theme: ThemeData.dark().copyWith(
         primaryColor: Colors.red,
@@ -21,11 +31,10 @@ class Face2FaceApp extends StatelessWidget {
       ),
       initialRoute: '/login',
       routes: {
-        ...appRoutes, // Mantén las rutas existentes
-        '/gym-login': (context) => const GymLoginScreen(), // Nueva ruta para gimnasios
-        '/gym-home': (context) => const GymHomeScreen(), // Nueva ruta para el home del gimnasio
-        '/edit-profile': (context) => EditProfileScreen(),
-
+        ...appRoutes,
+        '/gym-login': (context) => const GymLoginScreen(),
+        '/gym-home': (context) => const GymHomeScreen(),
+        '/edit-profile': (context) => const EditProfileScreen(),
       },
     );
   }

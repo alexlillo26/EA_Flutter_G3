@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert'; // Para codificar/decodificar JSON
 import 'package:http/http.dart' as http; // Para hacer llamadas API
 import '../session.dart'; 
-
-
+import 'package:face2face_app/services/notification_service.dart'; // <-- AÑADIDO
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -67,6 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
           });
           return;
         }
+
+        // !! AQUÍ ES DONDE SE INICIA EL SERVICIO DE NOTIFICACIONES !!
+        await NotificationService().initNotifications();
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Inicio de sesión exitoso')),

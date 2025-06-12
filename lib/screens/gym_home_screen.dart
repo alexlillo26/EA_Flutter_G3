@@ -88,8 +88,8 @@ class GymMapTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return fmap.FlutterMap(
       options: fmap.MapOptions(
-        center: latlng.LatLng(latitude, longitude),
-        zoom: 15.0,
+        initialCenter: latlng.LatLng(latitude, longitude),
+        initialZoom: 15.0,
       ),
       children: [
         fmap.TileLayer(
