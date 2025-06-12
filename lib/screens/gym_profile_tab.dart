@@ -23,8 +23,10 @@ class _GymProfileTabState extends State<GymProfileTab> {
 
   Future<void> fetchGymData() async {
     final response = await http.get(
-      Uri.parse('$API_BASE_URL/gym/${widget.gymId}'),
+      Uri.parse('http://localhost:9000/api/gym/${widget.gymId}'),
     );
+    print('Respuesta backend: ${response.body}'); // <-- Añade este print
+
     if (response.statusCode == 200) {
       setState(() {
         gymData = json.decode(response.body);
@@ -37,91 +39,86 @@ class _GymProfileTabState extends State<GymProfileTab> {
     }
   }
 
- @override
-Widget build(BuildContext context) {
-  if (isLoading) {
-    return const Center(child: CircularProgressIndicator());
-  }
-  if (gymData == null) {
-    return const Center(
-      child: Text('No se pudo cargar el perfil del gimnasio', style: TextStyle(color: Colors.white)),
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (gymData == null) {
+      return const Center(
+        child: Text('No se pudo cargar el perfil del gimnasio', style: TextStyle(color: Colors.white)),
+      );
+    }
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'PERFIL DEL GIMNASIO',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              _profileField('Nombre', gymData!['name'] ?? ''),
+              _profileField('Correo electrónico', gymData!['email'] ?? ''),
+              _profileField('Teléfono', gymData!['phone'] ?? ''),
+              _profileField('Ubicación', gymData!['place'] ?? ''),
+              _profileField('Precio', gymData!['price']?.toString() ?? ''),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {},
+                icon: const Icon(Icons.edit, color: Colors.white),
+                label: const Text('Editar perfil', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
-  return Center(
-    child: Container(
-      constraints: const BoxConstraints(maxWidth: 400),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+
+  Widget _profileField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 54,
-            backgroundColor: Colors.red.shade900,
-            child: Icon(Icons.fitness_center, color: Colors.white, size: 54),
-          ),
-          const SizedBox(height: 18),
           Text(
-            gymData!['name'] ?? '',
+            label,
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
+              color: Colors.red,
               fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
+              fontSize: 16,
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          Text(
-            gymData!['place'] ?? '',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 18,
+          const SizedBox(height: 4),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(8),
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 18),
-          Divider(color: Colors.white24, thickness: 1),
-          const SizedBox(height: 8),
-          _profileRow(Icons.email, 'Email', gymData!['email']),
-          _profileRow(Icons.phone, 'Teléfono', gymData!['phone']),
-          _profileRow(Icons.euro, 'Precio', gymData!['price']?.toString()),
-          const SizedBox(height: 18),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Text(
+              value,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
-            onPressed: () {},
-            icon: const Icon(Icons.edit, color: Colors.white),
-            label: const Text('Editar perfil', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
-    ),
-  );
-}
-
-Widget _profileRow(IconData icon, String label, String? value) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      children: [
-        Icon(icon, color: Colors.redAccent, size: 24),
-        const SizedBox(width: 12),
-        Text(
-          '$label:',
-          style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            value ?? '-',
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    ),
-  );
-} 
+    );
+  }
 }

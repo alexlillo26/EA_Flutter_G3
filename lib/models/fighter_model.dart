@@ -4,6 +4,10 @@ class Fighter {
   final String weight;
   final String email;
   final String city; // <- nuevo campo
+  final String? boxingVideo; // <-- Añade esto
+  final String? profilePicture; // <-- Añade esto
+
+
 
   Fighter({
     required this.id,
@@ -11,6 +15,10 @@ class Fighter {
     required this.weight,
     required this.email,
     required this.city,
+    this.boxingVideo, // <-- Añade esto
+    this.profilePicture, // <-- Añade esto
+
+
   });
 
    factory Fighter.fromJson(Map<String, dynamic> json) {
@@ -20,6 +28,10 @@ class Fighter {
       weight: json['weight'] ?? 'Peso no especificado',
       email: json['email'] ?? 'Sin email',
       city: json['city'] ?? 'Ciudad desconocida',
+      boxingVideo: json['boxingVideo'], // <-- Añade esto
+      profilePicture: json['profilePicture'], // <-- Añade esto
+
+
     );
   }
 }
