@@ -44,25 +44,50 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
-        final body = jsonDecode(response.body);      
-        if (body['token'] != null && (body['gymId'] != null || body['userId'] != null)) {
+        final body = jsonDecode(response.body);   
+         print('Respuesta backend: $body'); // <-- AQUÍ
+
+        print('Navegando al home de gimnasios'); // <-- Ya lo tienes aquí
+        final gymId = body['gym']?['_id'];
+        final gymName = body['gym']?['name'];
+
+        if (body['token'] != null && gymId != null) {
           await Session.setSession(
             newToken: body['token'],
             newRefreshToken: body['refreshToken'],
-            newUserId: body['gymId'] ?? body['userId'],
-            newUsername: body['name'],
-            newGymId: body['gymId'],
+            newUserId: gymId,
+            newUsername: gymName,
+            newGymId: gymId,
           );
+          print('Navegando al home de gimnasios 2');
+
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/gym-home');
+          }
         }
+        } else if (response.statusCode == 403) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cuenta no verificada')),
+            );
+        } else if (response.statusCode == 400 || response.statusCode == 401) {
+        
+            String errorMessage = 'Error al iniciar sesión o registrar';
+            try {
+                final errorBody = jsonDecode(response.body);
+                errorMessage = errorBody['message'] ?? errorMessage;
+            } catch (_) {}
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(errorMessage)),
+            );
         } else {
-        String errorMessage = 'Error desconocido';
-        try {
-            final errorBody = jsonDecode(response.body);
-            errorMessage = errorBody['message'] ?? errorMessage;
-        } catch (_) {}
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMessage)),
-        );
+            String errorMessage = 'Error desconocido';
+            try {
+                final errorBody = jsonDecode(response.body);
+                errorMessage = errorBody['message'] ?? errorMessage;
+            } catch (_) {}
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(errorMessage)),
+            );
         }
     } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -215,7 +240,7 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
                         onPressed: () async {
                           await signInWithGoogleWeb(isGym: true);
                           if (mounted) {
-                            Navigator.pushReplacementNamed(context, '/home');
+                            Navigator.pushReplacementNamed(context, '/gym-home');
                           }
                         },
                       ),
@@ -240,7 +265,7 @@ class _GymLoginScreenState extends State<GymLoginScreen> {
                         onPressed: () async {
                           await signInWithGoogleWeb(isGym: true);
                           if (mounted) {
-                            Navigator.pushReplacementNamed(context, '/home');
+                            Navigator.pushReplacementNamed(context, '/gym-home');
                           }
                         },
                       ),
