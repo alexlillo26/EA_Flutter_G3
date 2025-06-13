@@ -1,7 +1,8 @@
+// lib/widgets/upcoming_combats_tab.dart
 import 'package:flutter/material.dart';
-import 'package:face2face_app/models/combat_invitation_model.dart'; // Reutilizamos el modelo
+import 'package:face2face_app/models/combat_invitation_model.dart';
 import 'package:face2face_app/services/combat_service.dart';
-import 'package:face2face_app/session.dart'; // Para saber quién es el usuario actual
+import 'package:face2face_app/session.dart';
 
 class UpcomingCombatsTab extends StatefulWidget {
   const UpcomingCombatsTab({super.key});
@@ -30,60 +31,110 @@ class _UpcomingCombatsTabState extends State<UpcomingCombatsTab> {
 
   String _getOpponentDisplayName(CombatInvitation combat, String currentUserId) {
     if (combat.creatorId == currentUserId) {
-      return combat.opponentName; // Asume que opponentName está en el modelo
+      return combat.opponentName;
     } else if (combat.opponentId == currentUserId) {
       return combat.creatorName;
     }
-    return "Desconocido"; // Fallback
+    return "Desconocido";
   }
 
+  // --- NUEVO MÉTODO PARA MANEJAR LA CANCELACIÓN ---
+  Future<void> _handleCancelCombat(CombatInvitation combat) async {
+    final reasonController = TextEditingController();
+    
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text('Cancelar Combate', style: TextStyle(color: Colors.red)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('¿Estás seguro de que quieres cancelar este combate?', style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: reasonController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Motivo (opcional)',
+                  labelStyle: const TextStyle(color: Colors.white54),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('No, volver', style: TextStyle(color: Colors.white70)),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Sí, cancelar', style: TextStyle(color: Colors.white)),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      try {
+        await _combatService.cancelCombat(combat.id, reason: reasonController.text);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Combate cancelado.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          // Recargamos la lista para que el combate desaparezca de "Próximos"
+          _loadUpcomingCombats();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${e.toString()}')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<CombatInvitation>>(
       future: _upcomingCombatsFuture,
       builder: (context, snapshot) {
-        print('Entrando al builder de UpcomingCombatsTab');
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Colors.red));
         } else if (snapshot.hasError) {
           return Center(
-              child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text('Error al cargar próximos combates: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white70)),
-          ));
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text('Error al cargar próximos combates: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.white70)),
+            ),
+          );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(
+            child: Text('No tienes combates programados próximamente.',
+                style: TextStyle(color: Colors.white, fontSize: 16)),
+          );
+        }
+
+        List<CombatInvitation> upcomingCombats = snapshot.data!
+            .where((c) => c.status == 'accepted' && c.date.isAfter(DateTime.now()))
+            .toList();
+
+        if (upcomingCombats.isEmpty) {
+           return const Center(
               child: Text('No tienes combates programados próximamente.',
                   style: TextStyle(color: Colors.white, fontSize: 16)));
         }
-
-        List<CombatInvitation> upcomingCombats = snapshot.data!;
-        print('Todos los combates aceptados:');
-        for (var c in upcomingCombats) {
-          print('${c.status} - ${c.date.toIso8601String()}');
-        }
-
-        upcomingCombats = upcomingCombats.where((c) {
-          return c.status == 'accepted' && c.date.isAfter(DateTime.now());
-        }).toList();
-
-        print('Solo futuros:');
-        for (var c in upcomingCombats) {
-          print('${c.status} - ${c.date.toIso8601String()}');
-        }
-        // Filtrar para asegurar que solo se muestren los aceptados (el backend ya debería hacerlo)
-        // y que la fecha sea futura (el backend ya debería hacerlo con /future)
-        // List<CombatInvitation> filteredCombats = upcomingCombats.where((c) => 
-        //    c.status == 'accepted' && c.date.isAfter(DateTime.now())
-        // ).toList();
-        // if (filteredCombats.isEmpty) {
-        //    return const Center(child: Text('No tienes combates programados próximamente.', style: TextStyle(color: Colors.white, fontSize: 16)));
-        // }
-        // Si confías en que el backend /future ya hace este filtrado, puedes usar upcomingCombats directamente.
-
 
         return RefreshIndicator(
           onRefresh: () async {
@@ -93,7 +144,7 @@ class _UpcomingCombatsTabState extends State<UpcomingCombatsTab> {
           backgroundColor: Colors.grey[900],
           child: ListView.builder(
             padding: const EdgeInsets.all(10.0),
-            itemCount: upcomingCombats.length, // Usar la lista directamente si el backend filtra
+            itemCount: upcomingCombats.length,
             itemBuilder: (context, index) {
               final combat = upcomingCombats[index];
               final opponentDisplayName = _getOpponentDisplayName(combat, Session.userId!);
@@ -101,10 +152,6 @@ class _UpcomingCombatsTabState extends State<UpcomingCombatsTab> {
               return Card(
                 color: Colors.grey[850]?.withOpacity(0.9),
                 margin: const EdgeInsets.symmetric(vertical: 8.0),
-                elevation: 3,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
@@ -122,15 +169,17 @@ class _UpcomingCombatsTabState extends State<UpcomingCombatsTab> {
                       _buildInfoRow(Icons.shield_outlined, 'Nivel:', combat.level),
                       const SizedBox(height: 12),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                            Chip(
                             label: Text('ACEPTADO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             backgroundColor: Colors.green.shade700,
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           ),
-                          // Aquí podrías añadir más acciones si son relevantes para combates futuros
-                          // ej. "Ver detalles", "Chatear con oponente" (si no es el mismo chat de la invitación)
+                          TextButton.icon(
+                            onPressed: () => _handleCancelCombat(combat),
+                            icon: const Icon(Icons.cancel_schedule_send, color: Colors.orangeAccent),
+                            label: const Text('Cancelar', style: TextStyle(color: Colors.orangeAccent)),
+                          ),
                         ],
                       ),
                     ],

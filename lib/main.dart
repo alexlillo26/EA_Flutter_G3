@@ -1,19 +1,22 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
 import 'routes.dart';
-import 'screens/gym_login_screen.dart'; // Importa la nueva pantalla de gimnasios
-import 'screens/login_screen.dart'; // Importa donde está Session
-import 'session.dart'; // <-- Import correcto
+import 'screens/gym_login_screen.dart';
+import 'session.dart'; // Session ya no se usa aquí, pero lo dejamos por si acaso
 import 'screens/gym_home_screen.dart';
 import 'screens/edit_profile_screen.dart';
+import 'screens/splash_screen.dart'; // <-- 1. IMPORTA LA NUEVA PANTALLA
 
 void main() async {
+  // Ya no necesitas cargar la sesión aquí, la SplashScreen se encargará.
   WidgetsFlutterBinding.ensureInitialized();
-  await Session.loadSession();
+  // await Session.loadSession(); // <-- 2. ELIMINA ESTA LÍNEA
   runApp(const Face2FaceApp());
 }
 
 class Face2FaceApp extends StatelessWidget {
-  const Face2FaceApp({Key? key}) : super(key: key);
+  const Face2FaceApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,13 +26,15 @@ class Face2FaceApp extends StatelessWidget {
         primaryColor: Colors.red,
         scaffoldBackgroundColor: Colors.black,
       ),
-      initialRoute: '/login',
+      // 3. CAMBIA LA RUTA INICIAL
+      initialRoute: '/', // Usaremos '/' como la ruta para la SplashScreen
       routes: {
-        ...appRoutes, // Mantén las rutas existentes
-        '/gym-login': (context) => const GymLoginScreen(), // Nueva ruta para gimnasios
-        '/gym-home': (context) => const GymHomeScreen(), // Nueva ruta para el home del gimnasio
-        '/edit-profile': (context) => EditProfileScreen(),
-
+        // 4. AÑADE LA RUTA PARA LA SPLASH SCREEN
+        '/': (context) => const SplashScreen(),
+        ...appRoutes,
+        '/gym-login': (context) => const GymLoginScreen(),
+        '/gym-home': (context) => const GymHomeScreen(),
+        '/edit-profile': (context) => const EditProfileScreen(),
       },
     );
   }

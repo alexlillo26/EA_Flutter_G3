@@ -13,6 +13,8 @@ class CombatInvitation {
   final String gymId;
   final String gymName;
   final String status;
+  final String? cancellationReason; // <-- AÑADE ESTA LÍNEA
+
 
   CombatInvitation({
     required this.id,
@@ -26,6 +28,7 @@ class CombatInvitation {
     required this.gymId,
     required this.gymName,
     required this.status,
+    this.cancellationReason, // <-- AÑADE ESTA LÍNEA
   });
 
   String get formattedDate => DateFormat('dd/MM/yyyy').format(date.toLocal());
@@ -55,6 +58,7 @@ class CombatInvitation {
       gymId: json['gym'] is Map ? json['gym']['_id'] ?? '' : '',
       gymName: json['gym'] is Map ? json['gym']['name'] ?? '' : '',
       status: json['status'] ?? '',
+      cancellationReason: json['cancellationReason'] ?? null, // <-- AÑADE ESTA LÍNEA
 
     );
   }
