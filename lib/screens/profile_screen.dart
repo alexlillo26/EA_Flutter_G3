@@ -135,25 +135,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     if (mounted) setState(() => _isUploadingVideo = false);
   }
-    Future<Map<String, int>> _fetchFollowersCount() async {
-      final userId = Session.userId;
-      final token = Session.token;
-      final response = await http.get(
-        Uri.parse('$API_BASE_URL/followers/count/$userId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {
-          'followers': data['followers'] ?? 0,
-          'following': data['following'] ?? 0,
-        };
-      }
-      return {'followers': 0, 'following': 0};
+
+  Future<Map<String, int>> _fetchFollowersCount() async {
+    final userId = Session.userId;
+    final token = Session.token;
+    final response = await http.get(
+      Uri.parse('$API_BASE_URL/followers/count/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return {
+        'followers': data['followers'] ?? 0,
+        'following': data['following'] ?? 0,
+      };
     }
+    return {'followers': 0, 'following': 0};
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -192,6 +193,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 16),
                       if (userRatingsResponse != null && userRatingsResponse!.totalRatings > 0)
                         _buildRatingsCard(userRatingsResponse!),
+                      const SizedBox(height: 16),
+                      FutureBuilder<Map<String, int>>(
+                        future: _fetchFollowersCount(),
+                        builder: (context, snapshot) {
+                          final followers = snapshot.data?['followers'] ?? 0;
+                          final following = snapshot.data?['following'] ?? 0;
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _counterColumn(
+                                context,
+                                label: 'Followers',
+                                count: followers,
+                                onTap: () => _showFollowersList(context),
+                              ),
+                              const SizedBox(width: 32),
+                              _counterColumn(
+                                context,
+                                label: 'Following',
+                                count: following,
+                                onTap: () => _showFollowingList(context),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
                       _videoSection(),
                       const SizedBox(height: 16),
                       Padding(
@@ -201,69 +229,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white10,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-
-                    ),
-                                       const SizedBox(height: 16),
-                    FutureBuilder<Map<String, int>>(
-                      future: _fetchFollowersCount(),
-                      builder: (context, snapshot) {
-                        final followers = snapshot.data?['followers'] ?? 0;
-                        final following = snapshot.data?['following'] ?? 0;
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _counterColumn(
-                              context,
-                              label: 'Followers',
-                              count: followers,
-                              onTap: () => _showFollowersList(context),
-                            ),
-                            const SizedBox(width: 32),
-                            _counterColumn(
-                              context,
-                              label: 'Following',
-                              count: following,
-                              onTap: () => _showFollowingList(context),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _videoSection(),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white10,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          onPressed: () async {
-                            final result = await Navigator.pushNamed(
-                                context, '/edit-profile');
-                            if (result == true) {
-                              _loadProfileData();
-                            }
-                          },
-                          child: const Text(
-                            'Editar perfil',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-
+                            onPressed: () async {
+                              final result = await Navigator.pushNamed(
+                                  context, '/edit-profile');
+                              if (result == true) {
+                                _loadProfileData();
+                              }
+                            },
+                            child: const Text(
+                              'Editar perfil',
+                              style: TextStyle(
+                                color: Colors.red,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -384,7 +368,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
   Widget _profileCard(String title, String? value) {
     return Card(
       color: Colors.grey[900],
@@ -459,6 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   Widget _counterColumn(BuildContext context, {required String label, required int count, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
@@ -470,6 +454,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
   void _showFollowersList(BuildContext context) async {
     final userId = Session.userId;
     final token = Session.token;
@@ -485,7 +470,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final data = json.decode(response.body);
       followers = data['followers'] ?? [];
     }
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.grey[900],
       shape: const RoundedRectangleBorder(
@@ -511,7 +496,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final data = json.decode(response.body);
       following = data['following'] ?? [];
     }
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.grey[900],
       shape: const RoundedRectangleBorder(
