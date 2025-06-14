@@ -1,9 +1,10 @@
+import 'package:face2face_app/models/user_ratings_model.dart';
+import 'package:face2face_app/services/rating_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:face2face_app/config/app_config.dart';
 import 'package:http/http.dart' as http;
 import '../session.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -17,68 +18,84 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
-  VideoPlayerController? _videoController;
   String? _videoUrl;
   bool _isUploadingVideo = false;
+
+  final RatingService _ratingService = RatingService();
+  UserRatingsResponse? userRatingsResponse;
 
   @override
   void initState() {
     super.initState();
-    fetchUserData();
+    _loadProfileData();
   }
 
-  Future<void> fetchUserData() async {
+  Future<void> _loadProfileData() async {
+    if (!isLoading) setState(() => isLoading = true);
     final userId = Session.userId;
-    final token = Session.token;
-    if (userId == null || token == null) {
-      setState(() {
-        isLoading = false;
-      });
+    if (userId == null || Session.token == null) {
+      if (mounted) setState(() => isLoading = false);
       return;
     }
+    try {
+      await Future.wait([
+        _fetchUserData(),
+        _fetchUserRatings(),
+      ]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar el perfil: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
 
+  Future<void> _fetchUserData() async {
     final response = await http.get(
-      Uri.parse('$API_BASE_URL/users/$userId'),
+      Uri.parse('$API_BASE_URL/users/${Session.userId}'),
       headers: {
-        'Authorization': 'Bearer $token',
+        'Authorization': 'Bearer ${Session.token}',
         'Content-Type': 'application/json',
       },
     );
-
-    if (response.statusCode == 200) {
+    if (mounted && response.statusCode == 200) {
+      final data = json.decode(response.body);
       setState(() {
-        userData = json.decode(response.body);
-        _videoUrl = userData?['boxingVideo'];
-        isLoading = false;
+        userData = data;
+        _videoUrl = data?['boxingVideo'];
       });
     } else {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cargar el perfil')),
-      );
+      throw Exception('Error al cargar datos de usuario. Status: ${response.statusCode}');
+    }
+  }
+
+  Future<void> _fetchUserRatings() async {
+    try {
+      final ratings = await _ratingService.getUserRatings(Session.userId!);
+      if (mounted) {
+        setState(() {
+          userRatingsResponse = ratings;
+        });
+      }
+    } catch (e) {
+      print("No se pudieron cargar las valoraciones del usuario: $e");
     }
   }
 
   Future<void> _pickAndUploadVideo() async {
-    setState(() {
-      _isUploadingVideo = true;
-    });
-
+    setState(() => _isUploadingVideo = true);
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.video,
       allowMultiple: false,
-      withData: true, // Necesario para web
+      withData: true,
     );
-
     if (result == null || result.files.single.bytes == null) {
-      setState(() {
-        _isUploadingVideo = false;
-      });
+      setState(() => _isUploadingVideo = false);
       return;
     }
-
     final userId = Session.userId;
     final token = Session.token;
     final uri = Uri.parse('$API_BASE_URL/users/$userId/boxing-video');
@@ -89,57 +106,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
         result.files.single.bytes!,
         filename: result.files.single.name,
       ));
-
     final response = await request.send();
-
     if (response.statusCode == 200) {
-      final respStr = await response.stream.bytesToString();
-      final updatedUser = json.decode(respStr);
-      setState(() {
-        _videoUrl = updatedUser['boxingVideo'];
-        _isUploadingVideo = false;
-      });
-      fetchUserData(); // Refresca datos
+      await _loadProfileData();
     } else {
-      setState(() {
-        _isUploadingVideo = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al subir el video')),
       );
     }
+    if (mounted) setState(() => _isUploadingVideo = false);
   }
 
   Future<void> _removeVideo() async {
-    setState(() {
-      _isUploadingVideo = true;
-    });
-
+    setState(() => _isUploadingVideo = true);
     final userId = Session.userId;
     final token = Session.token;
     final uri = Uri.parse('$API_BASE_URL/users/$userId/boxing-video');
     final response = await http.delete(
       uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
-
     if (response.statusCode == 200) {
-      setState(() {
-        _videoUrl = null;
-        _isUploadingVideo = false;
-      });
-      fetchUserData();
+      await _loadProfileData();
     } else {
-      setState(() {
-        _isUploadingVideo = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al quitar el video')),
       );
     }
+    if (mounted) setState(() => _isUploadingVideo = false);
   }
 
   @override
@@ -150,97 +144,183 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.red,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.red))
           : userData == null
               ? const Center(child: Text('No se pudo cargar el perfil'))
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    const SizedBox(height: 24),
-                    Center(
-                      child: userData!['profilePicture'] != null &&
-                              userData!['profilePicture'].toString().isNotEmpty
-                          ? CircleAvatar(
-                              radius: 48,
-                              backgroundImage: NetworkImage(
-                                '${userData!['profilePicture']}?v=${DateTime.now().millisecondsSinceEpoch}',
+              : RefreshIndicator(
+                  onRefresh: _loadProfileData,
+                  color: Colors.red,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const SizedBox(height: 24),
+                      Center(
+                        child: userData!['profilePicture'] != null &&
+                                userData!['profilePicture'].toString().isNotEmpty
+                            ? CircleAvatar(
+                                radius: 48,
+                                backgroundImage: NetworkImage(
+                                  '${userData!['profilePicture']}?v=${DateTime.now().millisecondsSinceEpoch}',
+                                ),
+                              )
+                            : const CircleAvatar(
+                                radius: 48,
+                                backgroundColor: Colors.white24,
+                                child: Icon(Icons.person,
+                                    size: 48, color: Colors.white70),
                               ),
-                            )
-                          : const CircleAvatar(
-                              radius: 48,
-                              backgroundColor: Colors.white24,
-                              child: Icon(Icons.person, size: 48, color: Colors.white70),
+                      ),
+                      const SizedBox(height: 16),
+                      if (userRatingsResponse != null && userRatingsResponse!.totalRatings > 0)
+                        _buildRatingsCard(userRatingsResponse!),
+                      _videoSection(),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white10,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                    ),
-                    const SizedBox(height: 16),
-                    _videoSection(),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white10,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                            onPressed: () async {
+                              final result = await Navigator.pushNamed(
+                                  context, '/edit-profile');
+                              if (result == true) {
+                                _loadProfileData();
+                              }
+                            },
+                            child: const Text(
+                              'Editar perfil',
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
                             ),
-                          ),
-                          onPressed: () async {
-                            final result = await Navigator.pushNamed(context, '/edit-profile');
-                            if (result == true) {
-                              fetchUserData();
-                            }
-                          },
-                          child: const Text(
-                            'Editar perfil',
-                            style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                          ),
-                          onPressed: () async {
-                            await Session.clearSession();
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              '/login',
-                              (route) => false,
-                            );
-                          },
-                          child: const Text(
-                            'Cerrar sesión',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
+                            onPressed: () async {
+                              await Session.clearSession();
+                              if (mounted) {
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/login',
+                                  (route) => false,
+                                );
+                              }
+                            },
+                            child: const Text(
+                              'Cerrar sesión',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 16),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _profileCard('Nombre', userData!['name']),
-                    _profileCard('Correo', userData!['email']),
-                    _profileCard('Nacimiento', userData!['birthDate']?.toString().substring(0, 10) ?? ''),
-                    _profileCard('Peso', userData!['weight']),
-                    _profileCard('Ciudad', userData!['city']),
-                    _profileCard('Teléfono', userData!['phone']),
-                    _profileCard('Género', userData!['gender']),
-                    _profileCard('Experiencia', userData!['isAdmin'] == true ? 'Administrador' : 'Usuario'),
-                  ],
+                      const SizedBox(height: 16),
+                      _profileCard('Nombre', userData!['name']),
+                      _profileCard('Correo', userData!['email']),
+                      _profileCard(
+                          'Nacimiento',
+                          userData!['birthDate']
+                                  ?.toString()
+                                  .substring(0, 10) ??
+                              ''),
+                      _profileCard('Peso', userData!['weight']),
+                      _profileCard('Ciudad', userData!['city']),
+                      _profileCard('Teléfono', userData!['phone']),
+                      _profileCard('Género', userData!['gender']),
+                      _profileCard('Experiencia',
+                          userData!['isAdmin'] == true ? 'Administrador' : 'Usuario'),
+                    ],
+                  ),
                 ),
     );
   }
+
+  // --- WIDGET DE TARJETA DE VALORACIÓN MODIFICADO ---
+  Widget _buildRatingsCard(UserRatingsResponse ratings) {
+    return Card(
+      color: Colors.grey[900]?.withOpacity(0.85),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Valoraciones Detalladas',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Basado en ${ratings.totalRatings} valoraciones',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const Divider(color: Colors.white24, height: 24),
+            _buildStarRatingRow("Puntualidad", ratings.averagePunctuality),
+            _buildStarRatingRow("Actitud", ratings.averageAttitude),
+            _buildStarRatingRow("Técnica", ratings.averageTechnique),
+            _buildStarRatingRow("Intensidad", ratings.averageIntensity),
+            _buildStarRatingRow("Deportividad", ratings.averageSportmanship),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- NUEVO WIDGET PARA DIBUJAR UNA FILA DE ESTRELLAS ---
+  Widget _buildStarRatingRow(String label, double rating) {
+    List<Widget> stars = [];
+    for (int i = 1; i <= 5; i++) {
+      IconData iconData = Icons.star_border;
+      // Llena la estrella si el rating es mayor o igual al paso actual
+      if (rating >= i) {
+        iconData = Icons.star;
+      // Llena media estrella si está en el rango de 0.5
+      } else if (rating >= i - 0.5) {
+        iconData = Icons.star_half;
+      }
+      stars.add(Icon(iconData, color: Colors.amber, size: 20));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+          Row(children: stars),
+        ],
+      ),
+    );
+  }
+
 
   Widget _profileCard(String title, String? value) {
     return Card(
@@ -266,11 +346,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           onPressed: _pickAndUploadVideo,
           icon: const Icon(Icons.video_call, color: Colors.white),
-          label: const Text('Añadir video', style: TextStyle(color: Colors.white)),
+          label:
+              const Text('Añadir video', style: TextStyle(color: Colors.white)),
         ),
       );
     }
-    // Mostrar solo el botón "Ver video" y los otros botones
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -294,20 +374,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             },
             icon: const Icon(Icons.play_arrow, color: Colors.white),
-            label: const Text('Ver video', style: TextStyle(color: Colors.white)),
+            label:
+                const Text('Ver video', style: TextStyle(color: Colors.white)),
           ),
           const SizedBox(height: 8),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: _pickAndUploadVideo,
             icon: const Icon(Icons.edit, color: Colors.white),
-            label: const Text('Cambiar video', style: TextStyle(color: Colors.white)),
+            label: const Text('Cambiar video',
+                style: TextStyle(color: Colors.white)),
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
             onPressed: _removeVideo,
             icon: const Icon(Icons.delete, color: Colors.white),
-            label: const Text('Quitar video', style: TextStyle(color: Colors.white)),
+            label: const Text('Quitar video',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -333,7 +416,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       ..initialize().then((_) {
         setState(() {});
         _controller.setLooping(true);
-        // No reproducir automáticamente
       });
   }
 
@@ -353,7 +435,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     });
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return _controller.value.isInitialized
         ? AspectRatio(
@@ -371,7 +453,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                     backgroundColor: Colors.black54,
                     onPressed: _togglePlayPause,
                     child: Icon(
-                      _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                      _controller.value.isPlaying
+                          ? Icons.pause
+                          : Icons.play_arrow,
                       color: Colors.white,
                     ),
                   ),
