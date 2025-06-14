@@ -141,6 +141,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+    Future<Map<String, int>> _fetchFollowersCount() async {
+      final userId = Session.userId;
+      final token = Session.token;
+      final response = await http.get(
+        Uri.parse('$API_BASE_URL/followers/count/$userId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'followers': data['followers'] ?? 0,
+          'following': data['following'] ?? 0,
+        };
+      }
+      return {'followers': 0, 'following': 0};
+    }
 
   @override
   Widget build(BuildContext context) {
@@ -171,6 +190,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               backgroundColor: Colors.white24,
                               child: Icon(Icons.person, size: 48, color: Colors.white70),
                             ),
+                    ),
+                    const SizedBox(height: 16),
+                    FutureBuilder<Map<String, int>>(
+                      future: _fetchFollowersCount(),
+                      builder: (context, snapshot) {
+                        final followers = snapshot.data?['followers'] ?? 0;
+                        final following = snapshot.data?['following'] ?? 0;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _counterColumn(
+                              context,
+                              label: 'Followers',
+                              count: followers,
+                              onTap: () => _showFollowersList(context),
+                            ),
+                            const SizedBox(width: 32),
+                            _counterColumn(
+                              context,
+                              label: 'Following',
+                              count: following,
+                              onTap: () => _showFollowingList(context),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     _videoSection(),
@@ -308,6 +353,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: _removeVideo,
             icon: const Icon(Icons.delete, color: Colors.white),
             label: const Text('Quitar video', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _counterColumn(BuildContext context, {required String label, required int count, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Text('$count', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text(label, style: const TextStyle(fontSize: 14, color: Colors.white70)),
+        ],
+      ),
+    );
+  }
+  void _showFollowersList(BuildContext context) async {
+    final userId = Session.userId;
+    final token = Session.token;
+    final response = await http.get(
+      Uri.parse('$API_BASE_URL/followers/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    List followers = [];
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      followers = data['followers'] ?? [];
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _userListModal('Seguidores', followers.map((f) => f['follower']).toList()),
+    );
+    setState(() {});
+  }
+
+  void _showFollowingList(BuildContext context) async {
+    final userId = Session.userId;
+    final token = Session.token;
+    final response = await http.get(
+      Uri.parse('$API_BASE_URL/followers/following/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    List following = [];
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      following = data['following'] ?? [];
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _userListModal('Siguiendo', following.map((f) => f['following']).toList()),
+    );
+    setState(() {});
+  }
+
+  Widget _userListModal(String title, List users) {
+    return SizedBox(
+      height: 400,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+          Expanded(
+            child: users.isEmpty
+                ? const Center(child: Text('No hay usuarios', style: TextStyle(color: Colors.white70)))
+                : ListView.builder(
+                    itemCount: users.length,
+                    itemBuilder: (context, index) {
+                      final user = users[index];
+                      return ListTile(
+                        leading: const CircleAvatar(child: Icon(Icons.person)),
+                        title: Text(user['name'] ?? '-', style: const TextStyle(color: Colors.white)),
+                        subtitle: Text('@${user['username'] ?? ''}', style: const TextStyle(color: Colors.white70)),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
