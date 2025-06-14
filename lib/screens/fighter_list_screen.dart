@@ -95,6 +95,43 @@ class _FighterListScreenState extends State<FighterListScreen> {
           'Error al cargar los peleadores (código: ${response.statusCode})');
     }
   }
+  // ...existing code...
+
+Future<bool> _isFollowing(String userId) async {
+  final response = await http.get(
+    Uri.parse('$API_BASE_URL/followers/check/$userId'),
+    headers: {
+      'Authorization': 'Bearer ${Session.token}',
+      'Content-Type': 'application/json',
+    },
+  );
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return data['following'] == true;
+  }
+  return false;
+}
+
+  Future<void> _toggleFollow(String userId, bool currentlyFollowing) async {
+    if (currentlyFollowing) {
+      await http.delete(
+        Uri.parse('$API_BASE_URL/followers/unfollow/$userId'),
+        headers: {
+          'Authorization': 'Bearer ${Session.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+    } else {
+      await http.post(
+        Uri.parse('$API_BASE_URL/followers/follow/$userId'),
+        headers: {
+          'Authorization': 'Bearer ${Session.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+    }
+    setState(() {}); // Refresca el widget para actualizar el botón
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -378,6 +415,31 @@ class _FighterListScreenState extends State<FighterListScreen> {
                                           style: TextStyle(color: Colors.white),
                                         ),
                                       ),
+                                      FutureBuilder<bool>(
+                                        future: _isFollowing(fighter.id),
+                                        builder: (context, snapshot) {
+                                          final isFollowing = snapshot.data ?? false;
+                                          return ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: isFollowing ? Colors.grey : Colors.green,
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            ),
+                                            icon: Icon(
+                                              isFollowing ? Icons.check : Icons.person_add,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                            label: Text(
+                                              isFollowing ? 'Siguiendo' : 'Seguir',
+                                              style: const TextStyle(color: Colors.white),
+                                            ),
+                                            onPressed: () async {
+                                              await _toggleFollow(fighter.id, isFollowing);
+                                            },
+                                          );
+                                        },
+                                      ),
+                                      // Botón para seguir/seguir al boxeador
                                     ],
                                   )
                                 ],
