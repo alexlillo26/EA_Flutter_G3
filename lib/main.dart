@@ -7,11 +7,12 @@ import 'session.dart'; // Session ya no se usa aquí, pero lo dejamos por si aca
 import 'screens/gym_home_screen.dart';
 import 'screens/edit_profile_screen.dart';
 import 'screens/splash_screen.dart'; // <-- 1. IMPORTA LA NUEVA PANTALLA
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart'; // <-- Añade esto
 
 void main() async {
-  // Ya no necesitas cargar la sesión aquí, la SplashScreen se encargará.
   WidgetsFlutterBinding.ensureInitialized();
-  // await Session.loadSession(); // <-- 2. ELIMINA ESTA LÍNEA
+  await initializeDateFormatting('es'); // <-- Inicializa el locale español para Intl
   runApp(const Face2FaceApp());
 }
 

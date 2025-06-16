@@ -209,239 +209,252 @@ Future<bool> _isFollowing(String userId) async {
                           if (fighter.id == Session.userId) { //
                             return const SizedBox.shrink(); // No mostrarse a uno mismo
                           }
-                          return Card(
-                            color: Colors.grey[850]?.withOpacity(0.9),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.35), // Fondo semitransparente
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.red.shade700, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.18),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
                             ),
-                            margin: const EdgeInsets.only(bottom: 16),
+                            margin: const EdgeInsets.only(bottom: 18),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
+                              padding: const EdgeInsets.all(18),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    fighter.name, //
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
+                                  // Avatar
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.red.withOpacity(0.3),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 38,
+                                      backgroundColor: Colors.red.shade900,
+                                      backgroundImage: (fighter.profilePicture != null && fighter.profilePicture!.isNotEmpty)
+                                          ? NetworkImage(fighter.profilePicture!)
+                                          : null,
+                                      child: (fighter.profilePicture == null || fighter.profilePicture!.isEmpty)
+                                          ? const Icon(Icons.person, size: 38, color: Colors.white70)
+                                          : null,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.location_city,
-                                          color: Colors.white70, size: 16),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        fighter.city, //
-                                        style: const TextStyle(
-                                            color: Colors.white70, fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.scale, // Icono para peso
-                                          color: Colors.white70, size: 16),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Peso: ${fighter.weight}', //
-                                        style: const TextStyle(
-                                            color: Colors.white70, fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Wrap( // Usar Wrap para que los botones se ajusten si no caben
-                                    spacing: 8.0, // Espacio horizontal entre botones
-                                    runSpacing: 8.0, // Espacio vertical si hay varias líneas
-                                    alignment: WrapAlignment.end,
-                                    children: [
-                                      ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blueAccent,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
+                                  const SizedBox(width: 18),
+                                  // Info y acciones
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                fighter.name,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (fighter.boxingVideo != null && fighter.boxingVideo!.isNotEmpty)
+                                              Icon(Icons.videocam, color: Colors.orange.shade300, size: 22),
+                                          ],
                                         ),
-                                        onPressed: () async { // <--- MODIFICADO PARA SER ASYNC
-                                          if (Session.userId != null && //
-                                              Session.username != null && //
-                                              Session.token != null) { //
-                                            
-                                            // --- INICIO DE NUEVA LÓGICA ---
-                                            try {
-                                              // Opcional: Mostrar un indicador de carga o feedback
-                                              // if (mounted) {
-                                              //   ScaffoldMessenger.of(context).showSnackBar(
-                                              //     const SnackBar(content: Text('Iniciando chat...'), duration: Duration(seconds: 1)),
-                                              //   );
-                                              // }
-
-                                              final String conversationId = await _chatService.initiateChatSession(fighter.id); // fighter.id es el opponentId
-                                              
-                                              if (mounted) { // Verificar si el widget sigue montado
-                                                // ScaffoldMessenger.of(context).removeCurrentSnackBar(); // Quitar el SnackBar si se usó
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.location_city, color: Colors.redAccent, size: 18),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              fighter.city,
+                                              style: const TextStyle(color: Colors.white70, fontSize: 15),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Icon(Icons.scale, color: Colors.redAccent, size: 18),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              fighter.weight,
+                                              style: const TextStyle(color: Colors.white70, fontSize: 15),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 14),
+                                        // Botones de acción
+                                        Wrap(
+                                          spacing: 10,
+                                          runSpacing: 8,
+                                          alignment: WrapAlignment.start,
+                                          children: [
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.blueAccent,
+                                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              ),
+                                              onPressed: () async {
+                                                if (Session.userId != null &&
+                                                    Session.username != null &&
+                                                    Session.token != null) {
+                                                  try {
+                                                    final String conversationId = await _chatService.initiateChatSession(fighter.id);
+                                                    if (mounted) {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              CombatChatScreen(
+                                                            conversationId: conversationId,
+                                                            userToken: Session.token!,
+                                                            currentUserId: Session.userId!,
+                                                            currentUsername: Session.username!,
+                                                            opponentId: fighter.id,
+                                                            opponentName: fighter.name,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    }
+                                                  } catch (e) {
+                                                    if (mounted) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(content: Text('Error al iniciar chat: ${e.toString()}')),
+                                                      );
+                                                    }
+                                                  }
+                                                } else {
+                                                  if (mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text('Error: Datos de sesión incompletos para el chat.')),
+                                                    );
+                                                  }
+                                                }
+                                              },
+                                              icon: const Icon(Icons.mail_outline, color: Colors.white, size: 18),
+                                              label: const Text('Mensaje', style: TextStyle(color: Colors.white)),
+                                            ),
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.teal,
+                                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              ),
+                                              onPressed: () {
                                                 Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        CombatChatScreen( //
-                                                      // Se asume que CombatChatScreen será modificado para aceptar estos parámetros
-                                                      conversationId: conversationId, 
-                                                      userToken: Session.token!, //
-                                                      currentUserId: Session.userId!, //
-                                                      currentUsername: Session.username!, //
-                                                      opponentId: fighter.id,    
-                                                      opponentName: fighter.name, //
-                                                    ),
+                                                    builder: (context) => FighterProfileScreen(fighter: fighter),
                                                   ),
                                                 );
-                                              }
-                                            } catch (e) {
-                                               if (mounted) {
-                                                 // ScaffoldMessenger.of(context).removeCurrentSnackBar(); // Quitar si se usó
-                                                 ScaffoldMessenger.of(context).showSnackBar(
-                                                   SnackBar(content: Text('Error al iniciar chat: ${e.toString()}')),
-                                                 );
-                                               }
-                                            }
-                                            // --- FIN DE NUEVA LÓGICA ---
-
-                                          } else {
-                                            if (mounted) { // Asegurar que el widget está montado para mostrar SnackBar
-                                               ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                    content: Text('Error: Datos de sesión incompletos para el chat.')),
-                                              );
-                                            }
-                                          }
-                                        },
-                                        icon: const Icon(Icons.mail_outline,
-                                            color: Colors.white, size: 18),
-                                        label: const Text(
-                                          'Mensaje',
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      ),
-                                      ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.teal,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                        ),
-                                       onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => FighterProfileScreen(fighter: fighter),
+                                              },
+                                              icon: const Icon(Icons.person_outline, color: Colors.white, size: 18),
+                                              label: const Text('Ver Perfil', style: TextStyle(color: Colors.white)),
                                             ),
-                                          );
-                                        },
-                                        icon: const Icon(Icons.person_outline,
-                                            color: Colors.white, size: 18),
-                                        label: const Text(
-                                          'Ver Perfil',
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      ),
-                                      ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                        ),
-                                        onPressed: () {
-                                          if (Session.userId != null && Session.username != null) { //
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    CreateCombatScreen( //
-                                                  // Pasa los IDs, no los nombres, si tu backend espera IDs
-                                                  creatorId: Session.userId!, // Asume que creator es el ID del usuario actual
-                                                  creatorName: Session.username!, // <--- CORRECCIÓN APLICADA AQUÍ
-                                                  opponentId: fighter.id, 
-                                                  opponentName: fighter.name, // Nombre del oponente
-                                                ),  
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                               ),
-                                            );
-                                          } else {
-                                             ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                  content: Text(
-                                                      'Error: Datos de sesión incompletos para crear un combate.')),
-                                            );
-                                          }
-                                        },
-                                        icon: const Icon(
-                                            Icons.sports_kabaddi_outlined, // Icono de combate/desafío
-                                            color: Colors.white, size: 18),
-                                        label: const Text(
-                                          'Desafiar', // Cambiado de "Crear Combate" a "Desafiar"
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      ),
-                                      ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.orange,
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                        ),
-                                        onPressed: () {
-                                          if (fighter.boxingVideo != null && fighter.boxingVideo!.isNotEmpty) {
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                contentPadding: EdgeInsets.zero,
-                                                content: SizedBox(
-                                                  width: 320,
-                                                  height: 180,
-                                                  child: VideoPlayerWidget(videoUrl: fighter.boxingVideo!),
-                                                ),
+                                              onPressed: () {
+                                                if (Session.userId != null && Session.username != null) {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          CreateCombatScreen(
+                                                        creatorId: Session.userId!,
+                                                        creatorName: Session.username!,
+                                                        opponentId: fighter.id,
+                                                        opponentName: fighter.name,
+                                                      ),
+                                                    ),
+                                                  );
+                                                } else {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                        content: Text(
+                                                            'Error: Datos de sesión incompletos para crear un combate.')),
+                                                  );
+                                                }
+                                              },
+                                              icon: const Icon(Icons.sports_kabaddi_outlined, color: Colors.white, size: 18),
+                                              label: const Text('Desafiar', style: TextStyle(color: Colors.white)),
+                                            ),
+                                            ElevatedButton.icon(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.orange,
+                                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                               ),
-                                            );
-                                          } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Este boxeador no tiene video subido.')),
-                                            );
-                                          }
-                                        },
-                                        icon: const Icon(Icons.play_circle_fill, color: Colors.white, size: 18),
-                                        label: const Text(
-                                          'Ver video',
-                                          style: TextStyle(color: Colors.white),
+                                              onPressed: () {
+                                                if (fighter.boxingVideo != null && fighter.boxingVideo!.isNotEmpty) {
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (context) => AlertDialog(
+                                                      contentPadding: EdgeInsets.zero,
+                                                      content: SizedBox(
+                                                        width: 320,
+                                                        height: 180,
+                                                        child: VideoPlayerWidget(videoUrl: fighter.boxingVideo!),
+                                                      ),
+                                                    ),
+                                                  );
+                                                } else {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Este boxeador no tiene video subido.')),
+                                                  );
+                                                }
+                                              },
+                                              icon: const Icon(Icons.play_circle_fill, color: Colors.white, size: 18),
+                                              label: const Text('Ver video', style: TextStyle(color: Colors.white)),
+                                            ),
+                                            FutureBuilder<bool>(
+                                              future: _isFollowing(fighter.id),
+                                              builder: (context, snapshot) {
+                                                final isFollowing = snapshot.data ?? false;
+                                                return ElevatedButton.icon(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: isFollowing ? Colors.grey : Colors.green,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                  ),
+                                                  icon: Icon(
+                                                    isFollowing ? Icons.check : Icons.person_add,
+                                                    color: Colors.white,
+                                                    size: 18,
+                                                  ),
+                                                  label: Text(
+                                                    isFollowing ? 'Siguiendo' : 'Seguir',
+                                                    style: const TextStyle(color: Colors.white),
+                                                  ),
+                                                  onPressed: () async {
+                                                    await _toggleFollow(fighter.id, isFollowing);
+                                                  },
+                                                );
+                                              },
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                      FutureBuilder<bool>(
-                                        future: _isFollowing(fighter.id),
-                                        builder: (context, snapshot) {
-                                          final isFollowing = snapshot.data ?? false;
-                                          return ElevatedButton.icon(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: isFollowing ? Colors.grey : Colors.green,
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                            ),
-                                            icon: Icon(
-                                              isFollowing ? Icons.check : Icons.person_add,
-                                              color: Colors.white,
-                                              size: 18,
-                                            ),
-                                            label: Text(
-                                              isFollowing ? 'Siguiendo' : 'Seguir',
-                                              style: const TextStyle(color: Colors.white),
-                                            ),
-                                            onPressed: () async {
-                                              await _toggleFollow(fighter.id, isFollowing);
-                                            },
-                                          );
-                                        },
-                                      ),
-                                      // Botón para seguir/seguir al boxeador
-                                    ],
-                                  )
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

@@ -109,45 +109,69 @@ class _CombatHistoryTabState extends State<CombatHistoryTab> {
               final combat = combatHistory[index];
               final opponentDisplayName = _getOpponentDisplayName(combat, Session.userId!);
 
-              // --- LÓGICA CLAVE PARA LA UI ---
-              // Un combate se puede valorar si su estado es 'completed' explícitamente,
-              // o si está 'accepted' y su fecha ya pasó (se considera completado).
               final bool isPastAccepted = combat.status == 'accepted' && combat.date.isBefore(DateTime.now());
               final bool canRate = combat.status == 'completed' || isPastAccepted;
 
-              return Card(
-                color: Colors.grey[850]?.withOpacity(0.9),
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
+              return Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.black, Colors.grey[900]!, Colors.red.withOpacity(0.08)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.red.shade700, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.18),
+                      blurRadius: 10,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(18.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Combate vs: $opponentDisplayName',
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors.red.shade900,
+                            child: Icon(Icons.history, color: Colors.white, size: 28),
+                            radius: 24,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              'Combate vs: $opponentDisplayName',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 14),
                       _buildInfoRow(Icons.calendar_today_outlined, 'Fecha:', combat.formattedDate),
                       _buildInfoRow(Icons.access_time_outlined, 'Hora:', combat.formattedTime),
-                      
-                      // Muestra el motivo solo si el combate está cancelado y hay un motivo
                       if (combat.status == 'cancelled' && combat.cancellationReason != null && combat.cancellationReason!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: _buildInfoRow(Icons.comment_outlined, 'Motivo:', combat.cancellationReason!),
                         ),
-
-                      const SizedBox(height: 12),
-                      
+                      const SizedBox(height: 18),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          // Si se puede valorar, muestra el botón "Valorar"
                           if (canRate)
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
+                                backgroundColor: Colors.blue.shade700,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -157,10 +181,15 @@ class _CombatHistoryTabState extends State<CombatHistoryTab> {
                               },
                               child: const Text('Valorar', style: TextStyle(fontWeight: FontWeight.bold)),
                             )
-                          // Para cualquier otro estado ('cancelled', 'rejected'), muestra el Chip
+                          else if (combat.status == 'cancelled')
+                            Chip(
+                              label: const Text('CANCELADO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              backgroundColor: Colors.grey.shade800,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            )
                           else
                             Chip(
-                              label: Text(_getStatusText(combat.status), style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                              label: Text(_getStatusText(combat.status), style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
                               backgroundColor: _getStatusColor(combat.status),
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             ),

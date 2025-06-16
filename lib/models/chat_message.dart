@@ -26,7 +26,19 @@ class ChatMessage {
 
     String sendId = json['senderId'] as String? ?? 'unknown_sender';
     String msgText = json['message'] as String? ?? '';
-    DateTime ts = DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now();
+
+    // CORRECCIÓN: Soporta tanto 'timestamp' como 'createdAt' y asegura formato correcto
+    String? tsString = json['timestamp'] as String? ?? json['createdAt'] as String?;
+    DateTime ts;
+    if (tsString != null && tsString.isNotEmpty) {
+      try {
+        ts = DateTime.parse(tsString).toLocal();
+      } catch (_) {
+        ts = DateTime.now();
+      }
+    } else {
+      ts = DateTime.now();
+    }
 
     return ChatMessage(
       conversationId: convId, // Usar el ID de conversación del JSON

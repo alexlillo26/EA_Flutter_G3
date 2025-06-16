@@ -23,7 +23,57 @@ class _HomeScreenState extends State<HomeScreen> {
   Position? _currentPosition;
   final TextEditingController searchController = TextEditingController();
   String selectedWeight = 'Peso pluma';
-  int _currentIndex = 2;
+  int _currentIndex = 0;
+  bool _showMap = false;
+
+  List<Widget> get _screens => [
+        _buildSearchHomeScreenContent(), // 0: Buscar (Home)
+        const CombatManagementScreen(),   // 1: Combates
+        const ChatListScreen(),           // 2: Chats
+      ];
+
+  void _showMapDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(16),
+        child: SizedBox(
+          height: 400,
+          child: _buildMapScreen(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMapScreen() {
+    final position = _currentPosition;
+    return fmap.FlutterMap(
+      options: fmap.MapOptions(
+        center: position != null
+            ? latlng.LatLng(position.latitude, position.longitude)
+            : latlng.LatLng(40.4168, -3.7038), // Default to Madrid if no location
+        zoom: 13.0,
+      ),
+      children: [
+        fmap.TileLayer(
+          urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains: const ['a', 'b', 'c'],
+        ),
+        if (position != null)
+          fmap.MarkerLayer(
+            markers: [
+              fmap.Marker(
+                width: 40.0,
+                height: 40.0,
+                point: latlng.LatLng(position.latitude, position.longitude),
+                child: const Icon(Icons.location_pin, color: Colors.red, size: 40),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -31,162 +81,36 @@ class _HomeScreenState extends State<HomeScreen> {
     _getCurrentLocation();
   }
 
-  List<Widget> get _screens => [
-        const ProfileScreen(), // Índice 0
-        const StatisticsScreen(), // Índice 1 (New)
-        _buildMapScreen(), // Índice 2
-        _buildSearchHomeScreenContent(), // Índice 3
-        const CombatManagementScreen(), // Índice 4
-        const ChatListScreen(), // Índice 5
-      ];
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
 
-  void _getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        print('Servicio de ubicación deshabilitado');
-        return;
-      }
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Location services are not enabled, do nothing or prompt user
+      return;
+    }
 
-      LocationPermission permission = await Geolocator.checkPermission();
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          print('Permiso de ubicación denegado');
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        print('Permiso de ubicación denegado permanentemente');
+        // Permissions are denied, do nothing or prompt user
         return;
       }
-
-      Position position = await Geolocator.getCurrentPosition();
-      print('Ubicación obtenida: ${position.latitude}, ${position.longitude}');
-      if (mounted) {
-        setState(() {
-          _currentPosition = position;
-        });
-      }
-    } catch (e) {
-      print('Error al obtener la ubicación: $e');
-    }
-  }
-
-  Future<List<latlng.LatLng>> _fetchGymLocations() async {
-
-    print('Obteniendo gimnasios...');
-
-    final response = await http.get(Uri.parse('$API_BASE_URL/gym?page=1&pageSize=50')); // Endpoint del backend
-    print('Respuesta del backend: ${response.statusCode}');
-
-
-   if (response.statusCode == 200) {
-      final Map<String, dynamic> gymsResponse = json.decode(response.body);
-      final List<dynamic> gyms = gymsResponse['gyms'];
-      print('Gimnasios recibidos: ${gyms.length}');
-
-      List<latlng.LatLng> gymLocations = [];
-
-      for (var gym in gyms) {
-        final city = gym['place'];
-         print('Geocodificando ciudad: $city');
-
-        final geoResponse = await http.get(Uri.parse(
-            'https://nominatim.openstreetmap.org/search?q=$city&format=json&limit=1'));
-          print('Respuesta Nominatim: ${geoResponse.statusCode}');
-
-        if (geoResponse.statusCode == 200) {
-          final List<dynamic> geoData = json.decode(geoResponse.body);
-          if (geoData.isNotEmpty) {
-            final lat = double.parse(geoData[0]['lat']);
-            final lon = double.parse(geoData[0]['lon']);
-            gymLocations.add(latlng.LatLng(lat, lon));
-          }
-        }
-      }
-      print('Total ubicaciones: ${gymLocations.length}');
-
-      return gymLocations;
-    } else {
-      print('Error al obtener gimnasios');
-
-      throw Exception('Error al obtener gimnasios');
-    }
-  }
-
-  Widget _buildMapScreen() {
-    if (_currentPosition == null) {
-      return const Center(
-          child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: Colors.red),
-          SizedBox(height: 10),
-          Text("Obteniendo ubicación...", style: TextStyle(color: Colors.white70)),
-        ],
-      ));
     }
 
-    return FutureBuilder<List<latlng.LatLng>>(
-      future: _fetchGymLocations(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.red),
-          );
-        } else if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error al cargar gimnasios: ${snapshot.error}',
-              style: const TextStyle(color: Colors.white70),
-            ),
-          );
-        } else if (snapshot.hasData) {
-          final gymLocations = snapshot.data!;
-          return fmap.FlutterMap(
-            options: fmap.MapOptions(
-              initialCenter: latlng.LatLng(
-                  _currentPosition!.latitude, _currentPosition!.longitude),
-              initialZoom: 14.0,
-            ),
-            children: [
-              fmap.TileLayer(
-                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c'],
-              ),
-              fmap.MarkerLayer(
-                markers: [
-                  fmap.Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: latlng.LatLng(
-                        _currentPosition!.latitude, _currentPosition!.longitude),
-                    child: const Icon(Icons.location_pin,
-                        color: Colors.redAccent, size: 45),
-                  ),
-                  ...gymLocations.map((location) => fmap.Marker(
-                        width: 80.0,
-                        height: 80.0,
-                        point: location,
-                        child: const Icon(Icons.location_pin,
-                            color: Colors.black, size: 45),
-                      )),
-                ],
-              ),
-            ],
-          );
-        } else {
-          return const Center(
-            child: Text(
-              'No se encontraron gimnasios',
-              style: TextStyle(color: Colors.white70),
-            ),
-          );
-        }
-      },
-    );
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever, do nothing or prompt user
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    if (mounted) {
+      setState(() {
+        _currentPosition = position;
+      });
+    }
   }
 
   Widget _buildSearchHomeScreenContent() {
@@ -275,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -301,6 +225,45 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
                 ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: Icon(
+                      _showMap ? Icons.close : Icons.map_outlined,
+                      color: Colors.redAccent,
+                    ),
+                    label: Text(
+                      _showMap ? 'Ocultar mapa de gimnasios' : 'Ver mapa de gimnasios',
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.redAccent),
+                      backgroundColor: Colors.black.withOpacity(0.85),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showMap = !_showMap;
+                      });
+                    },
+                  ),
+                ),
+                if (_showMap) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 320,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _buildMapScreen(),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                // ...resto de la columna...
               ],
             ),
           ),
@@ -311,11 +274,58 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // The original _screens getter is now longer due to the new screen.
-    // The IndexedStack will now have 6 children.
     final screens = _screens;
-
     return Scaffold(
+      endDrawer: Drawer(
+        backgroundColor: Colors.black.withOpacity(0.92),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Eliminado DrawerHeader con "Menú"
+              const SizedBox(height: 32),
+              ListTile(
+                leading: const Icon(Icons.person_outline, color: Colors.redAccent),
+                title: const Text('Perfil', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bar_chart_outlined, color: Colors.redAccent),
+                title: const Text('Estadísticas', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const StatisticsScreen()));
+                },
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24.0),
+                child: Text(
+                  'Face2Face',
+                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 16, letterSpacing: 1.1),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.black.withOpacity(0.25), // Más transparente
+        elevation: 0,
+        title: const Text('Face2Face', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, color: Colors.redAccent),
+              onPressed: () => Scaffold.of(context).openEndDrawer(),
+              tooltip: 'Menú',
+            ),
+          ),
+        ],
+      ),
       body: IndexedStack(
         index: _currentIndex,
         children: screens,
@@ -335,24 +345,9 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-          BottomNavigationBarItem( // New Item
-            icon: Icon(Icons.bar_chart_outlined),
-            activeIcon: Icon(Icons.bar_chart),
-            label: 'Estadísticas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map),
-            label: 'Mapa',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined),
-            activeIcon: Icon(Icons.search),
-            label: 'Buscar',
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Inicio',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.list_alt_outlined),

@@ -36,13 +36,14 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       appBar: AppBar(
         title: const Text('Estadísticas de Combate'),
         backgroundColor: Colors.red,
+        elevation: 0,
       ),
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
             image: const AssetImage("assets/images/boxing_bg.jpg"),
             fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.82), BlendMode.darken),
+            colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.85), BlendMode.darken),
           ),
         ),
         child: FutureBuilder<List<CombatInvitation>>(
@@ -77,14 +78,68 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               onRefresh: () async {
                 _loadCombatHistory();
               },
+              color: Colors.red,
+              backgroundColor: Colors.black,
               child: ListView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20.0),
                 children: [
-                  _buildStatCard('Oponente Más Frecuente', statistics['mostFrequentOpponent'], Icons.person),
-                  const SizedBox(height: 16),
-                  _buildStatCard('Gimnasio Más Frecuente', statistics['mostFrequentGym'], Icons.fitness_center),
-                  const SizedBox(height: 16),
+                  // --- Cabecera temática ---
+                  Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.bar_chart, color: Colors.redAccent, size: 48),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Tus estadísticas',
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          width: 60,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                  // --- Tarjetas estadísticas ---
+                  _buildStatCard(
+                    'Oponente Más Frecuente',
+                    statistics['mostFrequentOpponent'],
+                    Icons.sports_mma,
+                    color: Colors.redAccent,
+                  ),
+                  const SizedBox(height: 18),
+                  _buildStatCard(
+                    'Gimnasio Más Frecuente',
+                    statistics['mostFrequentGym'],
+                    Icons.fitness_center,
+                    color: Colors.orangeAccent,
+                  ),
+                  const SizedBox(height: 18),
                   _buildFightsPerMonthCard(statistics['fightsPerMonth']),
+                  const SizedBox(height: 24),
+                  // --- Pie de página temático ---
+                  Center(
+                    child: Text(
+                      'Face2Face Boxing',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.25),
+                        fontSize: 16,
+                        letterSpacing: 1.1,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -134,35 +189,52 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     };
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon) {
+  Widget _buildStatCard(String title, String value, IconData icon, {Color color = Colors.redAccent}) {
     return Card(
-      color: Colors.grey[850]?.withOpacity(0.9),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      color: Colors.black.withOpacity(0.82),
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: color.withOpacity(0.5), width: 1.5),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
+        child: Row(
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                  color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+            Container(
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.18),
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(14),
+              child: Icon(icon, color: color, size: 32),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(icon, color: Colors.red, size: 32),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
                     value,
                     style: const TextStyle(
-                        color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -177,22 +249,33 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'
     };
 
-
     return Card(
-      color: Colors.grey[850]?.withOpacity(0.9),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      color: Colors.black.withOpacity(0.82),
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.redAccent.withOpacity(0.5), width: 1.5),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Peleas por Mes',
-              style: TextStyle(
-                  color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              children: const [
+                Icon(Icons.calendar_month, color: Colors.redAccent, size: 28),
+                SizedBox(width: 12),
+                Text(
+                  'Peleas por Mes',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             if (fightsPerMonth.isEmpty)
               const Text('No hay datos mensuales.', style: TextStyle(color: Colors.white))
             else
@@ -201,12 +284,21 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 final year = parts[0];
                 final month = monthNames[parts[1]] ?? '';
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  padding: const EdgeInsets.symmetric(vertical: 7.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('$month $year', style: const TextStyle(color: Colors.white, fontSize: 16)),
-                      Text('${entry.value} ${entry.value == 1 ? "pelea" : "peleas"}', style: const TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Icon(Icons.circle, color: Colors.redAccent.withOpacity(0.7), size: 10),
+                          const SizedBox(width: 8),
+                          Text('$month $year', style: const TextStyle(color: Colors.white, fontSize: 16)),
+                        ],
+                      ),
+                      Text(
+                        '${entry.value} ${entry.value == 1 ? "pelea" : "peleas"}',
+                        style: const TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 );

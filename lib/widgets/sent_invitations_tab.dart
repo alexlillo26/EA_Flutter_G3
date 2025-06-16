@@ -180,37 +180,75 @@ class _SentInvitationsTabState extends State<SentInvitationsTab>
           final invitation = _sentInvitations![index];
           final opponentDisplayName = _getOpponentDisplayNameForSent(invitation);
 
-          return Card(
-            color: Colors.grey[850]?.withOpacity(0.95),
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
-            elevation: 3,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.black, Colors.grey[900]!, Colors.red.withOpacity(0.08)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.red.shade700, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.18),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(18.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Invitación enviada a: $opponentDisplayName',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.red.shade900,
+                        child: Icon(Icons.send, color: Colors.white, size: 28),
+                        radius: 24,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          'Invitación enviada a: $opponentDisplayName',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   _buildInfoRow(Icons.calendar_today_outlined, 'Fecha:', invitation.formattedDate),
                   _buildInfoRow(Icons.access_time_outlined, 'Hora:', invitation.formattedTime),
                   _buildInfoRow(Icons.location_on_outlined, 'Gimnasio:', invitation.gymName),
                   _buildInfoRow(Icons.shield_outlined, 'Nivel:', invitation.level),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Chip(
-                        label: Text(_getStatusText(invitation.status), style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
-                        backgroundColor: _getStatusColor(invitation.status),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      ),
+                      if (invitation.status == 'pending')
+                        Chip(
+                          label: const Text('PENDIENTE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          backgroundColor: Colors.orange.shade700,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        )
+                      else
+                        Chip(
+                          label: Text(_getStatusText(invitation.status),
+                              style: const TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12)),
+                          backgroundColor: _getStatusColor(invitation.status),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        ),
                     ],
                   ),
                 ],

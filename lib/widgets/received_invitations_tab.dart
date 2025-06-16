@@ -140,48 +140,81 @@ class _ReceivedInvitationsTabState extends State<ReceivedInvitationsTab>
         itemCount: _receivedInvitations!.length,
         itemBuilder: (context, index) {
           final invitation = _receivedInvitations![index];
-          return Card(
-            color: Colors.grey[850]?.withOpacity(0.95),
-            margin: const EdgeInsets.symmetric(vertical: 8.0),
-            elevation: 3,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.black, Colors.grey[900]!, Colors.red.withOpacity(0.08)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.red.shade700, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withOpacity(0.18),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(18.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Invitación de: ${invitation.creatorName}',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.red.shade900,
+                        child: Icon(Icons.sports_mma, color: Colors.white, size: 28),
+                        radius: 24,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          'Invitación de: ${invitation.creatorName}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   _buildInfoRow(Icons.calendar_today_outlined, 'Fecha:', invitation.formattedDate),
                   _buildInfoRow(Icons.access_time_outlined, 'Hora:', invitation.formattedTime),
                   _buildInfoRow(Icons.location_on_outlined, 'Gimnasio:', invitation.gymName),
                   _buildInfoRow(Icons.shield_outlined, 'Nivel:', invitation.level),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton.icon(
-                        icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
-                        label: const Text('Rechazar', style: TextStyle(color: Colors.redAccent)),
-                        onPressed: _isLoading ? null : () => _handleResponse(invitation.id, 'rejected'), // Deshabilitar si está cargando
+                        icon: const Icon(Icons.cancel_outlined, color: Colors.white, size: 22),
+                        label: const Text('Rechazar', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: _isLoading ? null : () => _handleResponse(invitation.id, 'rejected'),
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          backgroundColor: Colors.red.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-                        label: const Text('Aceptar', style: TextStyle(color: Colors.white)),
-                        onPressed: _isLoading ? null : () => _handleResponse(invitation.id, 'accepted'), // Deshabilitar si está cargando
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      const SizedBox(width: 10),
+                      TextButton.icon(
+                        icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 22),
+                        label: const Text('Aceptar', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: _isLoading ? null : () => _handleResponse(invitation.id, 'accepted'),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),

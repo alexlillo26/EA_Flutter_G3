@@ -25,7 +25,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   void _loadConversations() {
     if (mounted) {
-      print("ChatListScreen: Cargando conversaciones...");
       setState(() {
         _conversationsFuture = _chatService.getMyConversations();
       });
@@ -51,249 +50,258 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis Chats'),
-        backgroundColor: Colors.red.shade800,
-        elevation: 1,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: const AssetImage("assets/images/boxing_bg.jpg"),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.88), BlendMode.darken),
+    return Stack(
+      children: [
+        // Imagen de fondo opacada
+        Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/images/boxing_bg.jpg"),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: Container(
+            color: Colors.black.withOpacity(0.72),
           ),
         ),
-        child: RefreshIndicator(
-          onRefresh: () async {
-            _loadConversations();
-          },
-          color: Colors.red,
-          backgroundColor: Colors.grey[900],
-          child: FutureBuilder<PaginatedConversationsResponse>(
-            future: _conversationsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                print("ChatListScreen: FutureBuilder esperando...");
-                return const Center(child: CircularProgressIndicator(color: Colors.red));
-              } else if (snapshot.hasError) {
-                print("ChatListScreen: FutureBuilder con error: ${snapshot.error}");
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, color: Colors.redAccent.shade100, size: 48),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error al cargar tus chats: ${snapshot.error}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70, fontSize: 16),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.refresh, color: Colors.white),
-                          label: const Text('Reintentar', style: TextStyle(color: Colors.white)),
-                          onPressed: _loadConversations,
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600),
-                        )
-                      ],
+        Column(
+          children: [
+            // Título "Chats" con padding superior para no solaparse con el AppBar global
+            Container(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 18, // Espacio para status bar y margen
+                left: 18,
+                right: 18,
+                bottom: 12,
+              ),
+              color: Colors.black.withOpacity(0.32),
+              child: Row(
+                children: [
+                  const Text(
+                    'Chats',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                      letterSpacing: 1.1,
                     ),
                   ),
-                );
-              } else if (!snapshot.hasData || snapshot.data!.conversations.isEmpty) {
-                print("ChatListScreen: FutureBuilder sin datos o conversaciones vacías.");
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.chat_bubble_outline, size: 60, color: Colors.white.withOpacity(0.5)),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Aún no tienes conversaciones.',
-                        style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 18),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Busca boxeadores para iniciar un chat.',
-                        style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
-                      ),
-                       const SizedBox(height: 20),
-                       ElevatedButton.icon(
-                          icon: const Icon(Icons.refresh, color: Colors.white),
-                          label: const Text('Recargar', style: TextStyle(color: Colors.white)),
-                          onPressed: _loadConversations,
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade400.withOpacity(0.8)),
-                        )
-                    ],
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Colors.white70),
+                    onPressed: _loadConversations,
+                    tooltip: 'Recargar',
                   ),
-                );
-              }
-
-              final paginatedResponse = snapshot.data!;
-              final conversations = paginatedResponse.conversations;
-              print("ChatListScreen: FutureBuilder con datos. Número de conversaciones: ${conversations.length}");
-
-              return ListView.separated(
-                itemCount: conversations.length,
-                separatorBuilder: (context, index) => Divider(
-                  color: Colors.grey[800],
-                  height: 0.5,
-                  indent: 82, // Ajustado para el avatar + padding
-                ),
-                itemBuilder: (context, index) {
-                  final convo = conversations[index];
-                  final opponent = convo.otherParticipant;
-
-                  // --- LOGS DE DIAGNÓSTICO POR ITEM ---
-                  print("ChatListScreen ITEM[$index] - Convo ID: ${convo.id}");
-                  if (opponent != null) {
-                    print("ChatListScreen ITEM[$index] - Opponent: ID=${opponent.id}, Name='${opponent.name}', Pic='${opponent.profilePicture}'");
-                  } else {
-                    print("ChatListScreen ITEM[$index] - Opponent: NULL");
-                  }
-                  // --- FIN LOGS DE DIAGNÓSTICO ---
-
-                  return Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        // --- LOGS DE DIAGNÓSTICO EN TAP ---
-                        print("ChatListScreen TAPPED - Convo ID: ${convo.id}");
-                        print("ChatListScreen TAPPED - Opponent: ID=${opponent?.id}, Name='${opponent?.name}'");
-                        print("ChatListScreen TAPPED - Session: tokenIsPresent=${Session.token != null}, userId=${Session.userId}, username=${Session.username}");
-                        // --- FIN LOGS DE DIAGNÓSTICO ---
-
-                        // Condición de navegación más robusta
-                        if (opponent != null &&
-                            opponent.id.isNotEmpty && // Asegurar que el ID del oponente no esté vacío
-                            opponent.name.isNotEmpty && // Asegurar que el nombre del oponente no esté vacío
-                            Session.token != null &&
-                            Session.userId != null &&
-                            Session.username != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CombatChatScreen(
-                                conversationId: convo.id,
-                                userToken: Session.token!,
-                                currentUserId: Session.userId!,
-                                currentUsername: Session.username!,
-                                opponentId: opponent.id,
-                                opponentName: opponent.name, // Pasamos el nombre que tenemos
-                              ),
-                            ),
-                          ).then((_) {
-                            _loadConversations();
-                          });
-                        } else {
-                          String missingDataReason = "No se pudo abrir el chat. Faltan datos: ";
-                          if (opponent == null) {
-                            missingDataReason += "Info del oponente no recibida. ";
-                          } else {
-                            if (opponent.id.isEmpty) missingDataReason += "ID del oponente vacío. ";
-                            if (opponent.name.isEmpty) missingDataReason += "Nombre del oponente vacío. ";
-                          }
-                          if (Session.token == null) missingDataReason += "Token de sesión nulo. ";
-                          if (Session.userId == null) missingDataReason += "ID de usuario de sesión nulo. ";
-                          if (Session.username == null) missingDataReason += "Nombre de usuario de sesión nulo. ";
-                          
-                          print("ChatListScreen - NAVIGATE FAILED: $missingDataReason");
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(missingDataReason, style: TextStyle(fontSize: 12)), duration: Duration(seconds: 3)),
-                          );
-                        }
-                      },
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Lista de chats
+            Expanded(
+              child: FutureBuilder<PaginatedConversationsResponse>(
+                future: _conversationsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: Colors.red));
+                  } else if (snapshot.hasError) {
+                    return Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0), // Aumentado padding vertical
-                        child: Row(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            CircleAvatar(
-                              radius: 30, // Ligeramente más grande
-                              backgroundColor: Colors.red.shade400,
-                              backgroundImage: (opponent?.profilePicture != null && opponent!.profilePicture!.isNotEmpty)
-                                  ? NetworkImage(opponent.profilePicture!)
-                                  : null,
-                              child: (opponent?.profilePicture == null || opponent!.profilePicture!.isEmpty)
-                                  ? Text(
-                                      // Usar el nombre del oponente para la inicial, o '?' si el oponente o su nombre es null/vacío
-                                      (opponent?.name.isNotEmpty == true) ? opponent!.name[0].toUpperCase() : '?',
-                                      style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
-                                    )
-                                  : null,
+                            Icon(Icons.error_outline, color: Colors.redAccent.shade100, size: 48),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error al cargar tus chats: ${snapshot.error}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white70, fontSize: 16),
                             ),
-                            const SizedBox(width: 16), // Más espacio
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    // Usar el nombre del oponente, o "Usuario Desconocido" como fallback
-                                    opponent?.name ?? 'Usuario Desconocido',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 17.5, // Un poco más grande
-                                      fontWeight: FontWeight.w500, // Ligeramente menos bold que antes
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    convo.lastMessage?.message ?? 'No hay mensajes.',
-                                    style: TextStyle(
-                                      color: convo.lastMessage != null ? Colors.white.withOpacity(0.75) : Colors.white.withOpacity(0.5),
-                                      fontSize: 14.5,
-                                      // fontWeight: convo.unreadCount > 0 ? FontWeight.bold : FontWeight.normal, // Para mensajes no leídos
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Column( // Para alinear el timestamp y el contador de no leídos (futuro)
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  convo.lastMessage != null
-                                      ? _formatTimestamp(convo.lastMessage!.createdAt)
-                                      : _formatTimestamp(convo.updatedAt),
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.65),
-                                    fontSize: 12.5,
-                                  ),
-                                ),
-                                // SizedBox(height: 4), // Espacio para el contador de no leídos
-                                // if (convo.unreadCount > 0)
-                                //   Container(
-                                //     padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                //     decoration: BoxDecoration(
-                                //       color: Colors.red.shade600,
-                                //       borderRadius: BorderRadius.circular(10)
-                                //     ),
-                                //     child: Text(
-                                //       convo.unreadCount.toString(),
-                                //       style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
-                                //     ),
-                                //   )
-                              ],
-                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.refresh, color: Colors.white),
+                              label: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+                              onPressed: _loadConversations,
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600),
+                            )
                           ],
                         ),
                       ),
+                    );
+                  } else if (!snapshot.hasData || snapshot.data!.conversations.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_outline, size: 60, color: Colors.white.withOpacity(0.5)),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Aún no tienes conversaciones.',
+                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 18),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Busca boxeadores para iniciar un chat.',
+                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.refresh, color: Colors.white),
+                            label: const Text('Recargar', style: TextStyle(color: Colors.white)),
+                            onPressed: _loadConversations,
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade400.withOpacity(0.8)),
+                          )
+                        ],
+                      ),
+                    );
+                  }
+
+                  final paginatedResponse = snapshot.data!;
+                  final conversations = paginatedResponse.conversations;
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.only(top: 0, left: 0, right: 0, bottom: 18),
+                    itemCount: conversations.length,
+                    separatorBuilder: (context, index) => const Divider(
+                      color: Colors.white12,
+                      height: 0,
+                      thickness: 1,
+                      indent: 80,
                     ),
+                    itemBuilder: (context, index) {
+                      final convo = conversations[index];
+                      final opponent = convo.otherParticipant;
+                      final bool hasUnread = (convo.unreadCount ?? 0) > 0;
+
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            if (opponent != null &&
+                                opponent.id.isNotEmpty &&
+                                opponent.name.isNotEmpty &&
+                                Session.token != null &&
+                                Session.userId != null &&
+                                Session.username != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CombatChatScreen(
+                                    conversationId: convo.id,
+                                    userToken: Session.token!,
+                                    currentUserId: Session.userId!,
+                                    currentUsername: Session.username!,
+                                    opponentId: opponent.id,
+                                    opponentName: opponent.name,
+                                  ),
+                                ),
+                              ).then((_) {
+                                _loadConversations();
+                              });
+                            } else {
+                              String missingDataReason = "No se pudo abrir el chat. Faltan datos.";
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(missingDataReason, style: TextStyle(fontSize: 12)), duration: Duration(seconds: 3)),
+                              );
+                            }
+                          },
+                          child: Container(
+                            color: Colors.grey[900]?.withOpacity(0.93),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                            child: Row(
+                              children: [
+                                Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 28,
+                                      backgroundColor: Colors.black,
+                                      backgroundImage: (opponent?.profilePicture != null && opponent!.profilePicture!.isNotEmpty)
+                                          ? NetworkImage(opponent.profilePicture!)
+                                          : null,
+                                      child: (opponent?.profilePicture == null || opponent!.profilePicture!.isEmpty)
+                                          ? Text(
+                                              (opponent?.name.isNotEmpty == true) ? opponent!.name[0].toUpperCase() : '?',
+                                              style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+                                            )
+                                          : null,
+                                    ),
+                                    if (hasUnread)
+                                      Positioned(
+                                        right: 0,
+                                        top: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.redAccent,
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: Colors.black, width: 1),
+                                          ),
+                                          child: Text(
+                                            '${convo.unreadCount}',
+                                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              opponent?.name ?? 'Usuario Desconocido',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          if (convo.lastMessage?.createdAt != null)
+                                            Text(
+                                              _formatTimestamp(convo.lastMessage!.createdAt),
+                                              style: TextStyle(
+                                                color: Colors.white.withOpacity(0.55),
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        convo.lastMessage?.message ?? 'No hay mensajes.',
+                                        style: TextStyle(
+                                          color: hasUnread
+                                              ? Colors.white
+                                              : Colors.white.withOpacity(0.7),
+                                          fontSize: 15,
+                                          fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-          ),
+              ),
+            ),
+          ],
         ),
-      ),
+      ],
     );
   }
 }

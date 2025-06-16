@@ -41,9 +41,12 @@ class CreateCombatScreen extends StatefulWidget {
 
 class _CreateCombatScreenState extends State<CreateCombatScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _levelController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
+
+  // Añade opciones de nivel con un valor inicial nulo
+  final List<String> _levels = ['Amateur', 'Sparring', 'Profesional'];
+  String? _selectedLevel;
 
   List<GymMenuItem> _gyms = [];
   String? _selectedGymId;
@@ -57,6 +60,7 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
   void initState() {
     super.initState();
     _fetchGyms();
+    _selectedLevel = null; // Por defecto, nada seleccionado
   }
 
   Future<void> _fetchGyms() async {
@@ -218,11 +222,10 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
         "creator": widget.creatorId,
         "opponent": widget.opponentId,
         "date": isoDateTimeInUtc,
-        "time": _timeController.text,  
-        "level": _levelController.text.trim(),
+        "time": _timeController.text,
+        "level": _selectedLevel ?? '',
         "gym": _selectedGymId,
         "boxers": [widget.creatorId, widget.opponentId],
-        // El backend debería asignar "status": "pending" por defecto
       };
 
       print('Enviando datos de combate: ${json.encode(combatData)}');
@@ -271,20 +274,20 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
   @override
   Widget build(BuildContext context) {
     final InputBorder finalInputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8.0),
+      borderRadius: BorderRadius.circular(12.0),
       borderSide: BorderSide(color: Colors.grey.shade700),
     );
 
     InputDecoration finalInputDecoration(String label, {Widget? suffixIcon}) =>
         InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.white70),
+          labelStyle: const TextStyle(color: Colors.white70),
           filled: true,
-          fillColor: Colors.grey.shade900,
+          fillColor: Colors.grey.shade900.withOpacity(0.85),
           border: finalInputBorder,
           enabledBorder: finalInputBorder,
           focusedBorder: finalInputBorder.copyWith(
-            borderSide: BorderSide(color: Colors.red, width: 2),
+            borderSide: const BorderSide(color: Colors.red, width: 2),
           ),
           suffixIcon: suffixIcon,
         );
@@ -297,106 +300,171 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/boxing_bg.jpg"),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-                Colors.black.withOpacity(0.75), BlendMode.darken),
+          gradient: LinearGradient(
+            colors: [Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.7)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCombatantInfoCard(),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _levelController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: finalInputDecoration(
-                      'Nivel del Combate (ej. Amateur, Profesional)'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Por favor, ingresa el nivel del combate.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildGymDropdown(finalInputDecoration),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _dateController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: finalInputDecoration(
-                    'Fecha del Combate',
-                    suffixIcon:
-                        Icon(Icons.calendar_today, color: Colors.white70),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCombatantInfoCard(),
+                  const SizedBox(height: 28),
+                  DropdownButtonFormField<String>(
+                    value: _selectedLevel,
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Seleccione nivel...', style: TextStyle(color: Colors.white54)),
+                      ),
+                      ..._levels.map((level) => DropdownMenuItem(
+                            value: level,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  level == 'Amateur'
+                                      ? Icons.school
+                                      : level == 'Sparring'
+                                          ? Icons.sports_mma
+                                          : Icons.workspace_premium,
+                                  color: Colors.redAccent,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(level, style: const TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          )),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedLevel = value;
+                      });
+                    },
+                    decoration: finalInputDecoration('Nivel del Combate'),
+                    dropdownColor: Colors.grey.shade900,
+                    style: const TextStyle(color: Colors.white),
+                    iconEnabledColor: Colors.redAccent,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, selecciona el nivel del combate.';
+                      }
+                      return null;
+                    },
                   ),
-                  readOnly: true,
-                  onTap: () => _selectDate(context),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, selecciona una fecha.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _timeController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: finalInputDecoration(
-                    'Hora del Combate',
-                    suffixIcon: Icon(Icons.access_time, color: Colors.white70),
+                  const SizedBox(height: 18),
+                  // --- GIMNASIO COMO DROPDOWN SELECTOR ---
+                  DropdownButtonFormField<String>(
+                    value: _selectedGymId,
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Seleccione gimnasio...', style: TextStyle(color: Colors.white54)),
+                      ),
+                      ..._gyms.map((gym) => DropdownMenuItem(
+                            value: gym.id,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.fitness_center, color: Colors.redAccent, size: 20),
+                                const SizedBox(width: 8),
+                                Text(gym.name, style: const TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          )),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedGymId = value;
+                      });
+                    },
+                    decoration: finalInputDecoration('Gimnasio Sede del Combate',
+                        suffixIcon: const Icon(Icons.sports_kabaddi, color: Colors.white70)),
+                    dropdownColor: Colors.grey.shade900,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    iconEnabledColor: Colors.redAccent,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, selecciona un gimnasio.';
+                      }
+                      return null;
+                    },
                   ),
-                  readOnly: true,
-                  onTap: () => _selectTime(context),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, selecciona una hora.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-                if (_isSubmitting)
-                  const Center(child: CircularProgressIndicator(color: Colors.red))
-                else
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.send, color: Colors.white),
-                      label: const Text('Enviar Propuesta',
-                          style: TextStyle(fontSize: 16, color: Colors.white)),
-                      onPressed: _submitCreateCombat,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: _dateController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: finalInputDecoration(
+                      'Fecha del Combate',
+                      suffixIcon: const Icon(Icons.calendar_today, color: Colors.white70),
+                    ),
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, selecciona una fecha.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                  TextFormField(
+                    controller: _timeController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: finalInputDecoration(
+                      'Hora del Combate',
+                      suffixIcon: const Icon(Icons.access_time, color: Colors.white70),
+                    ),
+                    readOnly: true,
+                    onTap: () => _selectTime(context),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor, selecciona una hora.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  if (_isSubmitting)
+                    const Center(child: CircularProgressIndicator(color: Colors.red))
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.send, color: Colors.white),
+                        label: const Text('Enviar Propuesta',
+                            style: TextStyle(fontSize: 16, color: Colors.white)),
+                        onPressed: _submitCreateCombat,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox( // Botón de cancelar
+                  const SizedBox(height: 18),
+                  SizedBox(
                     width: double.infinity,
                     child: TextButton(
-                       onPressed: () => Navigator.pop(context),
-                       child: Text(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
                         'Cancelar',
                         style: TextStyle(color: Colors.white70, fontSize: 15),
-                       ),
-                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12)
-                       ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
                     ),
                   )
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -527,7 +595,6 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
 
   @override
   void dispose() {
-    _levelController.dispose();
     _dateController.dispose();
     _timeController.dispose();
     super.dispose();

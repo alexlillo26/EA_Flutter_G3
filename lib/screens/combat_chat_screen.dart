@@ -4,6 +4,7 @@ import 'package:face2face_app/services/chat_service.dart'; //
 import 'package:face2face_app/models/chat_message.dart'; //
 import 'package:face2face_app/models/chat_conversation_preview.dart'; // Para PaginatedMessagesResponse
 import 'dart:async';
+import 'package:intl/intl.dart'; // Añade esto para formatear horas
 
 class CombatChatScreen extends StatefulWidget {
   // Parámetros actualizados
@@ -198,103 +199,182 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
     super.dispose();
   }
 
+  String _formatMessageTime(DateTime timestamp) {
+    final now = DateTime.now();
+    if (now.difference(timestamp).inDays == 0) {
+      // Hoy: solo hora:minuto
+      return DateFormat('HH:mm').format(timestamp);
+    } else if (now.difference(timestamp).inDays == 1) {
+      // Ayer
+      return 'Ayer ${DateFormat('HH:mm').format(timestamp)}';
+    } else if (now.year == timestamp.year) {
+      // Este año
+      return DateFormat('d MMM HH:mm', 'es').format(timestamp);
+    } else {
+      // Otro año
+      return DateFormat('d MMM yyyy HH:mm', 'es').format(timestamp);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        elevation: 4,
+        backgroundColor: Colors.black,
+        title: Row(
           children: [
-            Text(widget.opponentName), // Usar el nombre del oponente pasado como parámetro
-            if (_opponentIsTyping)
-              const Text(
-                'Escribiendo...',
-                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.white70),
+            CircleAvatar(
+              backgroundColor: Colors.red.shade900,
+              child: Icon(Icons.sports_mma, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.opponentName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                  if (_opponentIsTyping)
+                    const Text(
+                      'Escribiendo...',
+                      style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.white70),
+                    ),
+                ],
               ),
+            ),
           ],
         ),
-        backgroundColor: Colors.red,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoadingHistory
-                ? const Center(child: CircularProgressIndicator(color: Colors.red))
-                : _messages.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Inicia la conversación con ${widget.opponentName}.',
-                          style: TextStyle(color: Colors.white70, fontSize: 16),
-                          textAlign: TextAlign.center,
-                        )
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final message = _messages[index];
-                          return _buildMessageBubble(message);
-                        },
-                      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/boxing_bg.jpg"),
+            fit: BoxFit.cover,
           ),
-          _buildMessageInput(),
-        ],
+        ),
+        child: Container(
+          color: Colors.black.withOpacity(0.78),
+          child: Column(
+            children: [
+              Expanded(
+                child: _isLoadingHistory
+                    ? const Center(child: CircularProgressIndicator(color: Colors.red))
+                    : _messages.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Inicia la conversación con ${widget.opponentName}.',
+                              style: TextStyle(color: Colors.white70, fontSize: 16),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                            itemCount: _messages.length,
+                            itemBuilder: (context, index) {
+                              final message = _messages[index];
+                              final bool showDateHeader = index == 0 ||
+                                  !_isSameDay(_messages[index - 1].timestamp, message.timestamp);
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (showDateHeader)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      child: Center(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.shade900.withOpacity(0.7),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            _formatDateHeader(message.timestamp),
+                                            style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  _buildMessageBubble(message),
+                                ],
+                              );
+                            },
+                          ),
+              ),
+              _buildMessageInput(),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage message) { //
-    bool isMe = message.isMe; // Asume que ChatMessage tiene esta propiedad
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  String _formatDateHeader(DateTime date) {
+    final now = DateTime.now();
+    if (_isSameDay(now, date)) return "Hoy";
+    if (_isSameDay(now.subtract(const Duration(days: 1)), date)) return "Ayer";
+    return DateFormat('d MMM yyyy', 'es').format(date);
+  }
+
+  Widget _buildMessageBubble(ChatMessage message) {
+    bool isMe = message.isMe;
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        margin: EdgeInsets.only(
+          top: 2,
+          bottom: 8,
+          left: isMe ? 40 : 8,
+          right: isMe ? 8 : 40,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isMe ? Colors.red.shade700 : Colors.grey[800],
+          color: isMe ? Colors.red.shade700 : Colors.grey[850]?.withOpacity(0.92),
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4), // Estilo WhatsApp
-            bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16), // Estilo WhatsApp
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: isMe ? const Radius.circular(18) : const Radius.circular(6),
+            bottomRight: isMe ? const Radius.circular(6) : const Radius.circular(18),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 3,
-              offset: const Offset(1, 1),
+              color: isMe ? Colors.red.withOpacity(0.13) : Colors.black.withOpacity(0.13),
+              blurRadius: 4,
+              offset: const Offset(1, 2),
             ),
           ],
+          border: Border.all(
+            color: isMe ? Colors.redAccent.withOpacity(0.4) : Colors.white10,
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, // Para que la burbuja se ajuste al contenido
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // No mostramos el nombre del remitente si es un chat 1 a 1, es implícito.
-            // Si fuera grupal, sí se mostraría el message.senderUsername para los mensajes de otros.
-            // if (!isMe)
-            //   Padding(
-            //     padding: const EdgeInsets.only(bottom: 4.0),
-            //     child: Text(
-            //       message.senderUsername ?? widget.opponentName, // Fallback al nombre del oponente
-            //       style: TextStyle(
-            //         fontWeight: FontWeight.bold,
-            //         fontSize: 12,
-            //         color: isMe ? Colors.white.withOpacity(0.9) : Colors.red.shade200,
-            //       ),
-            //     ),
-            //   ),
             Text(
-              message.message, //
-              style: const TextStyle(color: Colors.white, fontSize: 15),
+              message.message,
+              style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.3),
             ),
-            const SizedBox(height: 5),
-            Text(
-              // Formatear la hora de forma más legible
-              '${message.timestamp.hour.toString().padLeft(2, '0')}:${message.timestamp.minute.toString().padLeft(2, '0')}', //
-              style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.7)),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _formatMessageTime(message.timestamp),
+                  style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.7)),
+                ),
+                if (isMe)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Icon(Icons.check, size: 13, color: Colors.white.withOpacity(0.7)),
+                  ),
+              ],
             ),
           ],
         ),
@@ -304,10 +384,10 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
 
   Widget _buildMessageInput() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0),
+      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
-        // border: Border(top: BorderSide(color: Colors.grey[700]!))
+        color: Colors.black.withOpacity(0.85),
+        border: const Border(top: BorderSide(color: Colors.red, width: 0.5)),
       ),
       child: Row(
         children: [
@@ -317,18 +397,18 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Escribe un mensaje...',
-                hintStyle: TextStyle(color: Colors.white54),
+                hintStyle: const TextStyle(color: Colors.white54),
                 filled: true,
-                fillColor: Colors.grey[850],
+                fillColor: Colors.grey[900]?.withOpacity(0.95),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(25),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               textCapitalization: TextCapitalization.sentences,
               minLines: 1,
-              maxLines: 5, // Permitir varias líneas
+              maxLines: 5,
             ),
           ),
           const SizedBox(width: 8),
@@ -339,7 +419,7 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
               borderRadius: BorderRadius.circular(25),
               onTap: _sendMessage,
               child: const Padding(
-                padding: EdgeInsets.all(12.0),
+                padding: EdgeInsets.all(13.0),
                 child: Icon(Icons.send, color: Colors.white),
               ),
             ),

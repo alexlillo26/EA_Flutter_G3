@@ -47,35 +47,70 @@ class _CombatManagementScreenState extends State<CombatManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis Combates'),
-        backgroundColor: Colors.red,
-        elevation: 2,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3.0, // Hacer el indicador un poco más grueso
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white.withOpacity(0.8),
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 13),
-          tabs: _tabs,
-          // isScrollable: true, // Descomenta si tienes muchas pestañas y quieres que se puedan desplazar
+    return Container(
+      decoration: BoxDecoration(
+        image: const DecorationImage(
+          image: AssetImage("assets/images/boxing_bg.jpg"),
+          fit: BoxFit.cover,
         ),
+        color: Colors.black.withOpacity(0.82),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: const AssetImage("assets/images/boxing_bg.jpg"), // Asegúrate que la ruta es correcta
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-                Colors.black.withOpacity(0.82), BlendMode.darken),
+      child: Center(
+        child: Card(
+          color: Colors.black.withOpacity(0.85),
+          elevation: 10,
+          // Bajamos el recuadro añadiendo más margen superior
+          margin: const EdgeInsets.fromLTRB(12, 56, 12, 28),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Si quieres un AppBar aquí, ponlo así:
+                // AppBar(
+                //   backgroundColor: Colors.transparent,
+                //   elevation: 0,
+                //   automaticallyImplyLeading: Navigator.of(context).canPop(),
+                //   title: const Text('Gestión de Combates', style: TextStyle(color: Colors.red)),
+                // ),
+                // Pero normalmente NO pongas AppBar aquí, deja que el global lo gestione.
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.15),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: Colors.red.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    indicatorColor: Colors.redAccent,
+                    indicatorWeight: 3.0,
+                    labelColor: Colors.redAccent,
+                    unselectedLabelColor: Colors.white.withOpacity(0.8),
+                    labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    unselectedLabelStyle: const TextStyle(fontSize: 13),
+                    tabs: _tabs,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: _tabViews,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        child: TabBarView(
-          controller: _tabController,
-          children: _tabViews,
         ),
       ),
     );
