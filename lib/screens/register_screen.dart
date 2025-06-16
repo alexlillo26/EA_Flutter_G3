@@ -161,32 +161,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ),
-              const SizedBox(height: 16),
-              // --- Google Register Button ---
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  icon: Icon(Icons.g_mobiledata, color: Colors.red, size: 28),
-                  label: const Text(
-                    'Registrarse con Google',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white),
-                    backgroundColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onPressed: () async {
-                    await signInWithGoogleWeb(isGym: false);
-                    if (context.mounted) {
-                      Navigator.pushReplacementNamed(context, '/home');
-                    }
-                  },
-                ),
-              ),
             ],
           ),
         ),
