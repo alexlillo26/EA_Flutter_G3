@@ -160,7 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Perfil'),
+        title: const Text('Perfil'),
         backgroundColor: Colors.red,
       ),
       body: isLoading
@@ -174,26 +174,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(16),
                     children: [
                       const SizedBox(height: 24),
+                      // Avatar y nombre
                       Center(
-                        child: userData!['profilePicture'] != null &&
-                                userData!['profilePicture'].toString().isNotEmpty
-                            ? CircleAvatar(
-                                radius: 48,
-                                backgroundImage: NetworkImage(
-                                  '${userData!['profilePicture']}?v=${DateTime.now().millisecondsSinceEpoch}',
-                                ),
-                              )
-                            : const CircleAvatar(
-                                radius: 48,
-                                backgroundColor: Colors.white24,
-                                child: Icon(Icons.person,
-                                    size: 48, color: Colors.white70),
-                              ),
+                        child: Column(
+                          children: [
+                            userData!['profilePicture'] != null &&
+                                    userData!['profilePicture'].toString().isNotEmpty
+                                ? CircleAvatar(
+                                    radius: 48,
+                                    backgroundImage: NetworkImage(
+                                      '${userData!['profilePicture']}?v=${DateTime.now().millisecondsSinceEpoch}',
+                                    ),
+                                  )
+                                : const CircleAvatar(
+                                    radius: 48,
+                                    backgroundColor: Colors.white24,
+                                    child: Icon(Icons.person, size: 48, color: Colors.white70),
+                                  ),
+                            const SizedBox(height: 12),
+                            Text(
+                              userData!['name'] ?? '',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '@${userData!['username'] ?? ''}',
+                              style: const TextStyle(color: Colors.white70, fontSize: 14),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      if (userRatingsResponse != null && userRatingsResponse!.totalRatings > 0)
-                        _buildRatingsCard(userRatingsResponse!),
-                      const SizedBox(height: 16),
+                      // Contadores followers/following
                       FutureBuilder<Map<String, int>>(
                         future: _fetchFollowersCount(),
                         builder: (context, snapshot) {
@@ -220,85 +233,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      _videoSection(),
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white10,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () async {
-                              final result = await Navigator.pushNamed(
-                                  context, '/edit-profile');
-                              if (result == true) {
-                                _loadProfileData();
-                              }
-                            },
-                            child: const Text(
-                              'Editar perfil',
-                              style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () async {
-                              await Session.clearSession();
-                              if (mounted) {
-                                Navigator.pushNamedAndRemoveUntil(
-                                  context,
-                                  '/login',
-                                  (route) => false,
-                                );
-                              }
-                            },
-                            child: const Text(
-                              'Cerrar sesión',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 16),
-                            ),
+                      // Card de valoraciones y vídeo
+                      Card(
+                        color: Colors.grey[900]?.withOpacity(0.85),
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              if (userRatingsResponse != null && userRatingsResponse!.totalRatings > 0)
+                                _buildRatingsCard(userRatingsResponse!),
+                              _videoSection(),
+                            ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _profileCard('Nombre', userData!['name']),
-                      _profileCard('Correo', userData!['email']),
-                      _profileCard(
-                          'Nacimiento',
-                          userData!['birthDate']
-                                  ?.toString()
-                                  .substring(0, 10) ??
-                              ''),
-                      _profileCard('Peso', userData!['weight']),
-                      _profileCard('Ciudad', userData!['city']),
-                      _profileCard('Teléfono', userData!['phone']),
-                      _profileCard('Género', userData!['gender']),
-                      _profileCard('Experiencia',
-                          userData!['isAdmin'] == true ? 'Administrador' : 'Usuario'),
+                      // Card de datos personales
+                      Card(
+                        color: Colors.grey[900],
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              _profileCard('Correo', userData!['email']),
+                              _profileCard(
+                                  'Nacimiento',
+                                  userData!['birthDate']?.toString().substring(0, 10) ?? ''),
+                              _profileCard('Peso', userData!['weight']),
+                              _profileCard('Ciudad', userData!['city']),
+                              _profileCard('Teléfono', userData!['phone']),
+                              _profileCard('Género', userData!['gender']),
+                              _profileCard('Experiencia',
+                                  userData!['isAdmin'] == true ? 'Administrador' : 'Usuario'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Botón editar perfil (ahora justo encima de cerrar sesión)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final result = await Navigator.pushNamed(context, '/edit-profile');
+                            if (result == true) {
+                              _loadProfileData();
+                            }
+                          },
+                          icon: const Icon(Icons.edit, color: Colors.white),
+                          label: const Text(
+                            'Editar perfil',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Botón cerrar sesión al final
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () async {
+                            await Session.clearSession();
+                            if (mounted) {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/login',
+                                (route) => false,
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.logout, color: Colors.white),
+                          label: const Text(
+                            'Cerrar sesión',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -309,7 +342,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildRatingsCard(UserRatingsResponse ratings) {
     return Card(
       color: Colors.grey[900]?.withOpacity(0.85),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -346,10 +379,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     List<Widget> stars = [];
     for (int i = 1; i <= 5; i++) {
       IconData iconData = Icons.star_border;
-      // Llena la estrella si el rating es mayor o igual al paso actual
       if (rating >= i) {
         iconData = Icons.star;
-      // Llena media estrella si está en el rango de 0.5
       } else if (rating >= i - 0.5) {
         iconData = Icons.star_half;
       }
@@ -369,12 +400,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _profileCard(String title, String? value) {
-    return Card(
-      color: Colors.grey[900],
-      child: ListTile(
-        title: Text(title, style: TextStyle(color: Colors.white70)),
-        subtitle: Text(value ?? '-', style: TextStyle(color: Colors.white)),
-      ),
+    return ListTile(
+      title: Text(title, style: TextStyle(color: Colors.white70)),
+      subtitle: Text(value ?? '-', style: TextStyle(color: Colors.white)),
     );
   }
 
@@ -431,6 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: const Text('Cambiar video',
                 style: TextStyle(color: Colors.white)),
           ),
+          const SizedBox(height: 12), // Más espacio antes de "Quitar video"
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
             onPressed: _removeVideo,
