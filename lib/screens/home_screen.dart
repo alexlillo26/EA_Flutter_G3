@@ -9,8 +9,7 @@ import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:latlong2/latlong.dart' as latlng;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-const String API_BASE_URL = 'http://localhost:9000/api';
+import 'package:face2face_app/config/app_config.dart'; // <-- Añade esto
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

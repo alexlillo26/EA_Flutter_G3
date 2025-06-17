@@ -6,6 +6,7 @@ class ChatMessage {
   final String message;
   final DateTime timestamp;
   final bool isMe;
+  final bool isUnread; // <-- Añadido
 
   ChatMessage({
     required this.conversationId, // CAMBIADO de combatId
@@ -14,6 +15,7 @@ class ChatMessage {
     required this.message,
     required this.timestamp,
     required this.isMe,
+    this.isUnread = false, // <-- Añadido
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json, String currentUserId) {
@@ -40,6 +42,15 @@ class ChatMessage {
       ts = DateTime.now();
     }
 
+    // El backend debe enviar un campo como 'isUnread' o 'read' en cada mensaje.
+    // Si no existe, por defecto false.
+    bool isUnread = false;
+    if (json.containsKey('isUnread')) {
+      isUnread = json['isUnread'] == true;
+    } else if (json.containsKey('read')) {
+      isUnread = !(json['read'] == true);
+    }
+
     return ChatMessage(
       conversationId: convId, // Usar el ID de conversación del JSON
       senderId: sendId,
@@ -47,6 +58,7 @@ class ChatMessage {
       message: msgText,
       timestamp: ts,
       isMe: sendId == currentUserId,
+      isUnread: isUnread,
     );
   }
 }

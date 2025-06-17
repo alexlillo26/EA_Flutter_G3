@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../session.dart'; // <-- Usar solo session.dart
+import 'package:face2face_app/config/app_config.dart'; // <-- Añade esto
 
 class ApiClient {
   final Dio _dio;
@@ -113,7 +114,7 @@ class ApiClient {
   Dio get dio => _dio;
 }
 
-final apiClient = ApiClient(baseUrl: 'http://localhost:9000/api');
+final apiClient = ApiClient(baseUrl: API_BASE_URL); // <-- Cambia aquí
 
 // El archivo ya es robusto y correcto para el manejo de tokens y refresco.
 // No requiere cambios.

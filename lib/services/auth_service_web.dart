@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
-import '../session.dart'; // <-- Usar solo session.dart
+import '../session.dart';
+import 'package:face2face_app/config/app_config.dart'; // <-- Añade esto
 
-const backendUrl = 'http://localhost:9000'; // Cambia si es necesario
+final backendUrl = API_BASE_URL.replaceAll('/api', ''); // <-- Cambia aquí
 const clientIdWeb = '604478234012-b81frmvc1b411j3kaj4luv25oblg6l6t.apps.googleusercontent.com';
 
 final googleSignIn = GoogleSignIn(

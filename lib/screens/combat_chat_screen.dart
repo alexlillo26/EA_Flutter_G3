@@ -218,6 +218,16 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Calcula el índice del primer mensaje no leído (del otro usuario)
+    int? firstUnreadIndex;
+    for (int i = 0; i < _messages.length; i++) {
+      final msg = _messages[i];
+      if (!msg.isMe && msg.isUnread == true) {
+        firstUnreadIndex = i;
+        break;
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         elevation: 4,
@@ -275,6 +285,10 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
                               final message = _messages[index];
                               final bool showDateHeader = index == 0 ||
                                   !_isSameDay(_messages[index - 1].timestamp, message.timestamp);
+
+                              // Mostrar separador de "Nuevos mensajes"
+                              final bool showUnreadDivider = firstUnreadIndex != null && index == firstUnreadIndex;
+
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -293,6 +307,36 @@ class _CombatChatScreenState extends State<CombatChatScreen> {
                                             style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
                                           ),
                                         ),
+                                      ),
+                                    ),
+                                  if (showUnreadDivider)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 8),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Divider(
+                                              color: Colors.redAccent,
+                                              thickness: 1.5,
+                                              endIndent: 8,
+                                            ),
+                                          ),
+                                          const Text(
+                                            "Nuevos mensajes",
+                                            style: TextStyle(
+                                              color: Colors.redAccent,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Divider(
+                                              color: Colors.redAccent,
+                                              thickness: 1.5,
+                                              indent: 8,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   _buildMessageBubble(message),

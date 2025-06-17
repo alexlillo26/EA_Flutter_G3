@@ -23,7 +23,7 @@ class _GymProfileTabState extends State<GymProfileTab> {
 
   Future<void> fetchGymData() async {
     final response = await http.get(
-      Uri.parse('http://localhost:9000/api/gym/${widget.gymId}'),
+      Uri.parse('$API_BASE_URL/gym/${widget.gymId}'),
     );
     print('Respuesta backend: ${response.body}'); // <-- Añade este print
 

@@ -3,6 +3,7 @@ import 'dart:convert'; // Para codificar/decodificar JSON
 import 'package:http/http.dart' as http; // Para hacer llamadas API
 import '../services/auth_service_web.dart';
 import '../session.dart'; // <-- Import correcto
+import 'package:face2face_app/config/app_config.dart'; // <-- Asegúrate de importar esto
 //
 // Clase global para guardar sesión
 
@@ -41,7 +42,8 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final url = Uri.parse('http://localhost:9000/api/users/login');
+      // Usa la constante API_BASE_URL definida en config/app_config.dart
+      final url = Uri.parse('$API_BASE_URL/users/login');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},

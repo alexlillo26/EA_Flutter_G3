@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/auth_service_web.dart'; // <-- Importa el servicio Google
 import '../session.dart'; // <-- Import correcto
+import 'package:face2face_app/config/app_config.dart'; // <-- Añade esta línea
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -24,64 +25,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String selectedGender = 'Hombre';
 
   Future<void> registerUser() async {
-  if (passwordController.text != confirmPasswordController.text) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Las contraseñas no coinciden')),
-    );
-    return;
-  }
+    if (passwordController.text != confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Las contraseñas no coinciden')),
+      );
+      return;
+    }
 
-  final url = Uri.parse('http://localhost:9000/api/users/register');
-  try {
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'name': nameController.text,
-        'birthDate': birthDateController.text,
-        'email': emailController.text,
-        'password': passwordController.text,
-        'confirmPassword': confirmPasswordController.text, // Agregado
-        'phone': phoneController.text,
-        'gender': selectedGender,
-        'isAdmin': false,
-        'weight': selectedWeight,
-        'city': cityController.text,
-      }),
-    );
+    final url = Uri.parse('$API_BASE_URL/users/register'); // <-- Cambia aquí
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'name': nameController.text,
+          'birthDate': birthDateController.text,
+          'email': emailController.text,
+          'password': passwordController.text,
+          'confirmPassword': confirmPasswordController.text, // Agregado
+          'phone': phoneController.text,
+          'gender': selectedGender,
+          'isAdmin': false,
+          'weight': selectedWeight,
+          'city': cityController.text,
+        }),
+      );
 
-    if (response.statusCode == 201) {
-      final body = json.decode(response.body);
-      if (body['token'] != null && body['userId'] != null) {
-        await Session.setSession(
-          newToken: body['token'],
-          newRefreshToken: body['refreshToken'],
-          newUserId: body['userId'],
-          newUsername: body['username'],
-          newGymId: null,
+      if (response.statusCode == 201) {
+        final body = json.decode(response.body);
+        if (body['token'] != null && body['userId'] != null) {
+          await Session.setSession(
+            newToken: body['token'],
+            newRefreshToken: body['refreshToken'],
+            newUserId: body['userId'],
+            newUsername: body['username'],
+            newGymId: null,
+          );
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuario registrado correctamente')),
+        );
+        // Redirige al usuario a la pantalla de inicio de sesión después de registrarse
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        // Imprime el código de estado y el cuerpo de la respuesta
+        print('Error en el registro: ${response.statusCode} - ${response.body}');
+        final msg = json.decode(response.body)['message'] ?? 'Error desconocido';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $msg')),
         );
       }
+    } catch (e) {
+      // Captura errores de conexión o excepciones
+      print('Excepción durante el registro: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario registrado correctamente')),
-      );
-      // Redirige al usuario a la pantalla de inicio de sesión
-  Navigator.pushReplacementNamed(context, '/home'); // Cambia '/login' por la ruta de tu pantalla de inicio de sesión
-    } else {
-      // Imprime el código de estado y el cuerpo de la respuesta
-      print('Error en el registro: ${response.statusCode} - ${response.body}');
-      final msg = json.decode(response.body)['message'] ?? 'Error desconocido';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $msg')),
+        SnackBar(content: Text('Error de conexión: ${e.toString()}')),
       );
     }
-  } catch (e) {
-    // Captura errores de conexión o excepciones
-    print('Excepción durante el registro: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error de conexión: ${e.toString()}')),
-    );
   }
-}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

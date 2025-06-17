@@ -171,19 +171,20 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     itemBuilder: (context, index) {
                       final convo = conversations[index];
                       final opponent = convo.otherParticipant;
+                      // Solo cuenta como no leídos los mensajes del otro usuario
                       final bool hasUnread = (convo.unreadCount ?? 0) > 0;
 
                       return Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () {
+                          onTap: () async {
                             if (opponent != null &&
                                 opponent.id.isNotEmpty &&
                                 opponent.name.isNotEmpty &&
                                 Session.token != null &&
                                 Session.userId != null &&
                                 Session.username != null) {
-                              Navigator.push(
+                              await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => CombatChatScreen(
@@ -195,9 +196,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                                     opponentName: opponent.name,
                                   ),
                                 ),
-                              ).then((_) {
-                                _loadConversations();
-                              });
+                              );
+                              _loadConversations();
                             } else {
                               String missingDataReason = "No se pudo abrir el chat. Faltan datos.";
                               ScaffoldMessenger.of(context).showSnackBar(

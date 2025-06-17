@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart' as latlng;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../session.dart'; // importa tu clase Session
+import 'package:face2face_app/config/app_config.dart'; // <-- Añade esto
 
 // --- Widget para el perfil real del gimnasio ---
 class GymProfileTab extends StatefulWidget {
@@ -26,7 +27,7 @@ class _GymProfileTabState extends State<GymProfileTab> {
 
   Future<void> fetchGymData() async {
     final response = await http.get(
-      Uri.parse('http://localhost:9000/api/gym/${widget.gymId}'),
+      Uri.parse('$API_BASE_URL/gym/${widget.gymId}'), // <-- Cambia aquí
     );
     if (response.statusCode == 200) {
       setState(() {
@@ -195,7 +196,7 @@ class _GymProfileTabState extends State<GymProfileTab> {
                   'price': double.tryParse(priceCtrl.text.trim()) ?? 0,
                 };
                 final response = await http.put(
-                  Uri.parse('http://localhost:9000/api/gym/${widget.gymId}'),
+                  Uri.parse('$API_BASE_URL/gym/${widget.gymId}'), // <-- Cambia aquí
                   headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ${Session.token}',
@@ -277,7 +278,7 @@ class _GymCombatsTabState extends State<GymCombatsTab> {
 
   Future<List<dynamic>> fetchCombats() async {
     final response = await http.get(
-      Uri.parse('http://localhost:9000/api/combat/gym/search/${widget.gymId}'),
+      Uri.parse('$API_BASE_URL/combat/gym/search/${widget.gymId}'), // <-- Cambia aquí
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${Session.token}',

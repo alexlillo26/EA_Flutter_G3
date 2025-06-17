@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:face2face_app/models/combat_invitation_model.dart';
 import 'package:face2face_app/services/combat_service.dart';
-// No necesitas Session.userId aquí directamente si CombatService lo maneja internamente
-// al obtener el token/ID de la clase Session.
+import 'package:face2face_app/session.dart'; // <-- Añade esta línea para obtener el userId
 
 class ReceivedInvitationsTab extends StatefulWidget {
   const ReceivedInvitationsTab({super.key});
@@ -140,6 +139,12 @@ class _ReceivedInvitationsTabState extends State<ReceivedInvitationsTab>
         itemCount: _receivedInvitations!.length,
         itemBuilder: (context, index) {
           final invitation = _receivedInvitations![index];
+          // Determina el nombre a mostrar igual que en las otras pestañas:
+          final currentUserId = Session.userId;
+          final displayName = (invitation.creatorId == currentUserId)
+              ? invitation.opponentName
+              : invitation.creatorName;
+
           return Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -173,7 +178,7 @@ class _ReceivedInvitationsTabState extends State<ReceivedInvitationsTab>
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
-                          'Invitación de: ${invitation.creatorName}',
+                          'Invitación de: $displayName',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 20,
