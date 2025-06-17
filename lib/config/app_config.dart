@@ -11,6 +11,4 @@ const String _ANDROID_EMULATOR_URL = "http://10.0.2.2:9000";
 // - Web y desktop usan siempre la URL de producción UPC (https)
 // - Android emulador usa la IP especial para localhost
 // - iOS, desktop, etc. usan la URL de producción
-final String API_BASE_URL = kIsWeb
-    ? 'https://ea3-api.upc.edu/api'
-    : (Platform.isAndroid ? 'http://10.0.2.2:9000/api' : 'https://ea3-api.upc.edu/api');
+final String API_BASE_URL = 'https://ea3-api.upc.edu/api';
