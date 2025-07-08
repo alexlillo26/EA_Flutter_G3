@@ -102,7 +102,7 @@ class _FighterProfileScreenState extends State<FighterProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Combates realizados',
+                    'Sparrings realizados',
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.redAccent,
@@ -118,7 +118,7 @@ class _FighterProfileScreenState extends State<FighterProfileScreen> {
                       }
                       if (!snapshot.hasData || snapshot.data!.isEmpty) {
                         return const Text(
-                          'Sin combates',
+                          'Aún no ha hecho sparring con nadie',
                           style: TextStyle(color: Colors.white70, fontSize: 16),
                         );
                       }

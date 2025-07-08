@@ -6,21 +6,6 @@ import 'package:intl/intl.dart'; // Para formatear fechas y horas
 import 'package:face2face_app/session.dart';
 import 'package:face2face_app/config/app_config.dart';
 
-// Modelo simple para el gimnasio en el dropdown
-class GymMenuItem {
-  final String id;
-  final String name;
-
-  GymMenuItem({required this.id, required this.name});
-
-  factory GymMenuItem.fromJson(Map<String, dynamic> json) {
-    return GymMenuItem(
-      id: json['_id'] ?? '',
-      name: json['name'] ?? 'Gimnasio sin nombre',
-    );
-  }
-}
-
 class CreateCombatScreen extends StatefulWidget {
   final String creatorId;
   final String creatorName; // Para mostrar en la UI
@@ -44,13 +29,13 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
 
-  // Añade opciones de nivel con un valor inicial nulo
-  final List<String> _levels = ['Amateur', 'Sparring', 'Profesional'];
-  String? _selectedLevel;
+  // Eliminado: nivel y gimnasio
+  // final List<String> _levels = ['Amateur', 'Sparring', 'Profesional'];
+  // String? _selectedLevel;
+  // List<GymMenuItem> _gyms = [];
+  // String? _selectedGymId;
+  // bool _isLoadingGyms = true;
 
-  List<GymMenuItem> _gyms = [];
-  String? _selectedGymId;
-  bool _isLoadingGyms = true;
   bool _isSubmitting = false;
 
   DateTime? _selectedDate;
@@ -59,61 +44,11 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchGyms();
-    _selectedLevel = null; // Por defecto, nada seleccionado
+    // Eliminado: _fetchGyms();
+    // _selectedLevel = null;
   }
 
-  Future<void> _fetchGyms() async {
-    setState(() {
-      _isLoadingGyms = true;
-    });
-    try {
-      final token = Session.token;
-      if (token == null) {
-        throw Exception('Usuario no autenticado para cargar gimnasios.');
-      }
-
-      final url = Uri.parse('$API_BASE_URL/gym');
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final dynamic responseBody = json.decode(response.body);
-        List<dynamic> data = [];
-
-        if (responseBody is List) {
-          data = responseBody;
-        } else if (responseBody is Map<String, dynamic>) {
-          data = responseBody['gyms'] ??
-              responseBody['results'] ??
-              responseBody['data'] ??
-              [];
-        }
-
-        setState(() {
-          _gyms = data.map((g) => GymMenuItem.fromJson(g)).toList();
-          _isLoadingGyms = false;
-        });
-      } else {
-        throw Exception(
-            'Error al obtener gimnasios: ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar gimnasios: ${e.toString()}')),
-        );
-        setState(() {
-          _isLoadingGyms = false;
-        });
-      }
-    }
-  }
+  // Eliminado: _fetchGyms()
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -121,14 +56,14 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
       initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(DateTime.now().year + 2),
-       builder: (context, child) { // Opcional: Para tematizar el DatePicker
+      builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
             colorScheme: ColorScheme.dark(
-              primary: Colors.red, // Color primario
-              onPrimary: Colors.white, // Color del texto sobre el primario
-              surface: Colors.grey[800]!, // Fondo del DatePicker
-              onSurface: Colors.white, // Texto del DatePicker
+              primary: Colors.red,
+              onPrimary: Colors.white,
+              surface: Colors.grey[800]!,
+              onSurface: Colors.white,
             ),
             dialogBackgroundColor: Colors.grey[900],
           ),
@@ -148,10 +83,10 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
-      builder: (context, child) { // Opcional: Para tematizar el TimePicker
+      builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
-             colorScheme: ColorScheme.dark(
+            colorScheme: ColorScheme.dark(
               primary: Colors.red,
               onPrimary: Colors.white,
               surface: Colors.grey[800]!,
@@ -168,7 +103,7 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
               dialBackgroundColor: Colors.grey[800],
               dialTextColor: Colors.white,
               entryModeIconColor: Colors.red,
-            )
+            ),
           ),
           child: child!,
         );
@@ -186,12 +121,7 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    if (_selectedGymId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, selecciona un gimnasio.')),
-      );
-      return;
-    }
+    // Eliminado: validación de gimnasio y nivel
     if (_selectedDate == null || _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, selecciona fecha y hora.')),
@@ -223,8 +153,8 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
         "opponent": widget.opponentId,
         "date": isoDateTimeInUtc,
         "time": _timeController.text,
-        "level": _selectedLevel ?? '',
-        "gym": _selectedGymId,
+        // "level": _selectedLevel ?? '', // Eliminado
+        // "gym": _selectedGymId,         // Eliminado
         "boxers": [widget.creatorId, widget.opponentId],
       };
 
@@ -244,7 +174,7 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
         if (response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('¡Propuesta de combate enviada exitosamente!')),
+                content: Text('¡Propuesta de sparring enviada exitosamente!')),
           );
           Navigator.pop(context, true);
         } else {
@@ -252,7 +182,7 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text(
-                    'Error al crear combate: ${responseBody['message'] ?? response.body}')),
+                    'Error al crear el sparring: ${responseBody['message'] ?? response.body}')),
           );
         }
       }
@@ -294,7 +224,7 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Proponer Combate'),
+        title: const Text('Proponer sparring'),
         backgroundColor: Colors.red,
         elevation: 0,
       ),
@@ -316,86 +246,8 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
                 children: [
                   _buildCombatantInfoCard(),
                   const SizedBox(height: 28),
-                  DropdownButtonFormField<String>(
-                    value: _selectedLevel,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Seleccione nivel...', style: TextStyle(color: Colors.white54)),
-                      ),
-                      ..._levels.map((level) => DropdownMenuItem(
-                            value: level,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  level == 'Amateur'
-                                      ? Icons.school
-                                      : level == 'Sparring'
-                                          ? Icons.sports_mma
-                                          : Icons.workspace_premium,
-                                  color: Colors.redAccent,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(level, style: const TextStyle(color: Colors.white)),
-                              ],
-                            ),
-                          )),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedLevel = value;
-                      });
-                    },
-                    decoration: finalInputDecoration('Nivel del Combate'),
-                    dropdownColor: Colors.grey.shade900,
-                    style: const TextStyle(color: Colors.white),
-                    iconEnabledColor: Colors.redAccent,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, selecciona el nivel del combate.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  // --- GIMNASIO COMO DROPDOWN SELECTOR ---
-                  DropdownButtonFormField<String>(
-                    value: _selectedGymId,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Seleccione gimnasio...', style: TextStyle(color: Colors.white54)),
-                      ),
-                      ..._gyms.map((gym) => DropdownMenuItem(
-                            value: gym.id,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.fitness_center, color: Colors.redAccent, size: 20),
-                                const SizedBox(width: 8),
-                                Text(gym.name, style: const TextStyle(color: Colors.white)),
-                              ],
-                            ),
-                          )),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGymId = value;
-                      });
-                    },
-                    decoration: finalInputDecoration('Gimnasio Sede del Combate',
-                        suffixIcon: const Icon(Icons.sports_kabaddi, color: Colors.white70)),
-                    dropdownColor: Colors.grey.shade900,
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                    iconEnabledColor: Colors.redAccent,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, selecciona un gimnasio.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 18),
+                  // Eliminado: DropdownButtonFormField para nivel
+                  // Eliminado: DropdownButtonFormField para gimnasio
                   TextFormField(
                     controller: _dateController,
                     style: const TextStyle(color: Colors.white),
@@ -542,54 +394,6 @@ class _CreateCombatScreenState extends State<CreateCombatScreen> {
           style: const TextStyle(color: Colors.white70, fontSize: 13),
         ),
       ],
-    );
-  }
-
-  Widget _buildGymDropdown(
-      InputDecoration Function(String, {Widget? suffixIcon}) inputDecoration) {
-    if (_isLoadingGyms) {
-      return const Center(child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 16.0),
-        child: CircularProgressIndicator(color: Colors.red),
-      ));
-    }
-    if (_gyms.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        child: Text(
-          'No hay gimnasios disponibles para seleccionar.',
-          style: TextStyle(color: Colors.orangeAccent.shade100, fontStyle: FontStyle.italic),
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
-    return DropdownButtonFormField<String>(
-      value: _selectedGymId,
-      items: _gyms.map((gym) {
-        return DropdownMenuItem<String>(
-          value: gym.id,
-          child: Text(gym.name, style: const TextStyle(color: Colors.white)),
-        );
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedGymId = value;
-        });
-      },
-      decoration: inputDecoration('Gimnasio Sede del Combate',
-          suffixIcon: Icon(Icons.sports_kabaddi, color: Colors.white70)),
-      dropdownColor: Colors.grey.shade800,
-      style: const TextStyle(color: Colors.white, fontSize: 16),
-      isExpanded: true,
-      iconEnabledColor: Colors.redAccent,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Por favor, selecciona un gimnasio.';
-        }
-        return null;
-      },
-      hint: const Text('Selecciona un gimnasio',
-          style: TextStyle(color: Colors.white54)),
     );
   }
 

@@ -21,7 +21,25 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Position? _currentPosition;
   final TextEditingController searchController = TextEditingController();
-  String selectedWeight = 'Peso pluma';
+
+  // Cambia aquí las categorías de peso por las del screenshot
+  final List<String> weightCategories = [
+    '-48 kg',
+    '48 – 51 kg',
+    '51 – 54 kg',
+    '54 – 57 kg',
+    '57 – 60 kg',
+    '60 – 63.5 kg',
+    '63.5 – 67 kg',
+    '67 – 71 kg',
+    '71 – 75 kg',
+    '75 – 80 kg',
+    '80 – 92 kg',
+    '+92 kg',
+    'Cualquiera',
+  ];
+
+  String selectedWeight = '-48 kg';
   int _currentIndex = 0;
   bool _showMap = false;
 
@@ -181,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           icon: const Icon(Icons.arrow_drop_down, color: Colors.black54),
                           dropdownColor: Colors.white,
                           style: const TextStyle(color: Colors.black87, fontSize: 16),
-                          items: ['Peso pluma', 'Peso ligero', 'Peso medio', 'Peso pesado', 'Cualquiera']
+                          items: weightCategories
                               .map((String value) {
                             return DropdownMenuItem<String>(
                               value: value,

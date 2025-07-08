@@ -318,7 +318,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     // Datos personales alineados
                                     _profileRow(Icons.email, 'Correo', userData!['email']),
                                     _profileRow(Icons.cake, 'Nacimiento', userData!['birthDate']?.toString().substring(0, 10) ?? ''),
+                                    // --- CAMBIO: Mostrar el peso tal cual lo escribió el usuario ---
                                     _profileRow(Icons.scale, 'Peso', userData!['weight']),
+                                    // --- CAMBIO: Mostrar el número de combates tal cual lo escribió el usuario ---
+                                    _profileRow(Icons.sports_mma, 'Nº de combates', userData!['fights']),
                                     _profileRow(Icons.location_city, 'Ciudad', userData!['city']),
                                     _profileRow(Icons.phone, 'Teléfono', userData!['phone']),
                                     _profileRow(Icons.person, 'Género', userData!['gender']),

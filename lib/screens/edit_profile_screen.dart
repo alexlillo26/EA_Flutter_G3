@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:file_picker/file_picker.dart';
-import 'dart:io';
+import 'dart:convert';
 import '../session.dart';
-import 'package:face2face_app/config/app_config.dart'; 
-
+import 'package:face2face_app/config/app_config.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -16,107 +13,107 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  Map<String, dynamic>? userData;
-  bool isLoading = true;
-  PlatformFile? _pickedFile;
-
-  // Controladores para los campos editables
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController cityController = TextEditingController();
+  final TextEditingController birthDateController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
+  final TextEditingController fightsController = TextEditingController();
+
+  String selectedGender = 'Hombre';
+
+  // Lista de categorías de peso según tu imagen
+  final List<String> weightCategories = [
+    '-48 kg',
+    '48 – 51 kg',
+    '51 – 54 kg',
+    '54 – 57 kg',
+    '57 – 60 kg',
+    '60 – 63.5 kg',
+    '63.5 – 67 kg',
+    '67 – 71 kg',
+    '71 – 75 kg',
+    '75 – 80 kg',
+    '80 – 92 kg',
+    '+92 kg',
+  ];
+  String? selectedWeight;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    fetchUserData();
+    _loadProfileData();
   }
 
-  Future<void> fetchUserData() async {
+  Future<void> _loadProfileData() async {
+    setState(() => isLoading = true);
     final userId = Session.userId;
     final token = Session.token;
-    if (userId == null || token == null) {
-      setState(() {
-        isLoading = false;
-      });
-      return;
-    }
-
     final response = await http.get(
-        Uri.parse('$API_BASE_URL/users/$userId'),      
-        headers: {
+      Uri.parse('$API_BASE_URL/users/$userId'),
+      headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     );
-
     if (response.statusCode == 200) {
-      userData = json.decode(response.body);
-      nameController.text = userData!['name'] ?? '';
-      cityController.text = userData!['city'] ?? '';
-      phoneController.text = userData!['phone'] ?? '';
-    }
-    setState(() {
-      isLoading = false;
-    });
-  }
-
-  Future<void> _pickImage() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-      withData: true, // Necesario para web
-    );
-    if (result != null && result.files.isNotEmpty) {
+      final data = json.decode(response.body);
       setState(() {
-        _pickedFile = result.files.first;
+        nameController.text = data['name'] ?? '';
+        birthDateController.text = data['birthDate']?.toString().substring(0, 10) ?? '';
+        emailController.text = data['email'] ?? '';
+        phoneController.text = data['phone'] ?? '';
+        cityController.text = data['city'] ?? '';
+        fightsController.text = data['fights']?.toString() ?? '';
+        selectedGender = data['gender'] ?? 'Hombre';
+        // Selecciona la categoría de peso correspondiente
+        final userWeight = data['weight']?.toString();
+        if (userWeight != null && weightCategories.contains(userWeight)) {
+          selectedWeight = userWeight;
+        } else {
+          selectedWeight = weightCategories.first;
+        }
       });
     }
+    setState(() => isLoading = false);
   }
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => isLoading = true);
 
     final userId = Session.userId;
     final token = Session.token;
-    if (userId == null || token == null) return;
+    final response = await http.put(
+      Uri.parse('$API_BASE_URL/users/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'name': nameController.text,
+        'birthDate': birthDateController.text,
+        'email': emailController.text,
+        'phone': phoneController.text,
+        'city': cityController.text,
+        'weight': selectedWeight,
+        'fights': fightsController.text,
+        'gender': selectedGender,
+      }),
+    );
 
-    var uri = Uri.parse('$API_BASE_URL/users/$userId');    
-    var request = http.MultipartRequest('PUT', uri);
-    request.headers['Authorization'] = 'Bearer $token';
-
-    request.fields['name'] = nameController.text;
-    request.fields['city'] = cityController.text;
-    request.fields['phone'] = phoneController.text;
-
-    if (_pickedFile != null) {
-      if (_pickedFile!.bytes != null) {
-        request.files.add(
-          http.MultipartFile.fromBytes(
-            'profilePicture',
-            _pickedFile!.bytes!,
-            filename: _pickedFile!.name,
-          ),
-        );
-      } else if (_pickedFile!.path != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'profilePicture',
-            _pickedFile!.path!,
-          ),
-        );
-      }
-    }
-
-    final response = await request.send();
+    setState(() => isLoading = false);
 
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Perfil actualizado')),
+        const SnackBar(content: Text('Perfil actualizado correctamente')),
       );
-      Navigator.pop(context, true); // Vuelve al perfil y refresca
+      Navigator.pop(context, true);
     } else {
+      final msg = json.decode(response.body)['message'] ?? 'Error al actualizar perfil';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al actualizar el perfil')),
+        SnackBar(content: Text(msg)),
       );
     }
   }
@@ -124,157 +121,123 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Editar perfil'),
-        backgroundColor: Colors.black.withOpacity(0.18),
-        elevation: 0,
-        centerTitle: true,
+        title: const Text('Editar Perfil'),
+        backgroundColor: Colors.red,
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            'assets/images/boxing_bg.jpg',
-            fit: BoxFit.cover,
-          ),
-          Container(color: Colors.black.withOpacity(0.8)),
-          isLoading
-              ? const Center(child: CircularProgressIndicator(color: Colors.red))
-              : Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                    child: Form(
-                      key: _formKey,
-                      child: Card(
-                        color: Colors.black.withOpacity(0.88),
-                        elevation: 10,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 28),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              GestureDetector(
-                                onTap: _pickImage,
-                                child: Stack(
-                                  alignment: Alignment.bottomRight,
-                                  children: [
-                                    _pickedFile != null
-                                        ? CircleAvatar(
-                                            radius: 54,
-                                            backgroundImage: _pickedFile!.bytes != null
-                                                ? MemoryImage(_pickedFile!.bytes!)
-                                                : FileImage(File(_pickedFile!.path!)) as ImageProvider,
-                                          )
-                                        : (userData?['profilePicture'] != null &&
-                                                userData!['profilePicture'].toString().isNotEmpty)
-                                            ? CircleAvatar(
-                                                radius: 54,
-                                                backgroundImage: NetworkImage(userData!['profilePicture']),
-                                              )
-                                            : const CircleAvatar(
-                                                radius: 54,
-                                                backgroundColor: Colors.white24,
-                                                child: Icon(Icons.person, size: 54, color: Colors.white70),
-                                              ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.redAccent,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 2),
-                                      ),
-                                      padding: const EdgeInsets.all(6),
-                                      child: const Icon(Icons.edit, color: Colors.white, size: 20),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 22),
-                              _buildProfileField(
-                                label: 'Nombre',
-                                controller: nameController,
-                                icon: Icons.person,
-                                validator: (value) => value == null || value.isEmpty ? 'Campo requerido' : null,
-                              ),
-                              const SizedBox(height: 18),
-                              _buildProfileField(
-                                label: 'Ciudad',
-                                controller: cityController,
-                                icon: Icons.location_city,
-                                validator: (value) => value == null || value.isEmpty ? 'Campo requerido' : null,
-                              ),
-                              const SizedBox(height: 18),
-                              _buildProfileField(
-                                label: 'Teléfono',
-                                controller: phoneController,
-                                icon: Icons.phone,
-                                keyboardType: TextInputType.phone,
-                                validator: (value) => value == null || value.isEmpty ? 'Campo requerido' : null,
-                              ),
-                              const SizedBox(height: 32),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    elevation: 6,
-                                  ),
-                                  onPressed: _saveProfile,
-                                  icon: const Icon(Icons.save, color: Colors.white),
-                                  label: const Text(
-                                    'Guardar cambios',
-                                    style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.red))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Nombre'),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Introduce tu nombre' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: birthDateController,
+                      readOnly: true,
+                      decoration: const InputDecoration(labelText: 'Fecha de nacimiento'),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.tryParse(birthDateController.text) ?? DateTime(2000),
+                          firstDate: DateTime(1950),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) {
+                          birthDateController.text =
+                              '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: emailController,
+                      decoration: const InputDecoration(labelText: 'Correo'),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Introduce tu correo' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(labelText: 'Teléfono'),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedGender,
+                      items: ['Hombre', 'Mujer']
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedGender = value!;
+                        });
+                      },
+                      decoration: const InputDecoration(labelText: 'Sexo'),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: cityController,
+                      decoration: const InputDecoration(labelText: 'Ciudad'),
+                    ),
+                    const SizedBox(height: 16),
+                    // CAMBIO: Selector de peso en vez de campo de texto
+                    DropdownButtonFormField<String>(
+                      value: selectedWeight,
+                      items: weightCategories
+                          .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedWeight = value!;
+                        });
+                      },
+                      decoration: const InputDecoration(labelText: 'Peso (kg)'),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Selecciona tu peso' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    // CAMPO NÚMERO DE COMBATES EDITABLE
+                    TextFormField(
+                      controller: fightsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Número de combates',
+                        hintText: 'Ejemplo: 12',
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) return 'Introduce el número de combates';
+                        final num? combates = num.tryParse(value);
+                        if (combates == null || combates < 0) return 'Introduce un número válido';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        onPressed: _saveProfile,
+                        child: const Text(
+                          'Guardar cambios',
+                          style: TextStyle(fontSize: 18, color: Colors.white),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white, fontSize: 17),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
-        prefixIcon: Icon(icon, color: Colors.redAccent),
-        filled: true,
-        fillColor: Colors.grey[900]?.withOpacity(0.92),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.redAccent.withOpacity(0.4)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.redAccent.withOpacity(0.2)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-      ),
-      keyboardType: keyboardType,
-      validator: validator,
+              ),
+            ),
     );
   }
 }

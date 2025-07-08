@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../services/auth_service_web.dart'; // <-- Importa el servicio Google
-import '../session.dart'; // <-- Import correcto
-import 'package:face2face_app/config/app_config.dart'; // <-- Añade esta línea
+import '../services/auth_service_web.dart';
+import '../session.dart';
+import 'package:face2face_app/config/app_config.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,9 +20,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController cityController = TextEditingController();
+  final TextEditingController fightsController = TextEditingController();
 
-  String selectedWeight = 'Peso pluma';
   String selectedGender = 'Hombre';
+
+  // Lista de categorías de peso según tu imagen
+  final List<String> weightCategories = [
+    '-48 kg',
+    '48 – 51 kg',
+    '51 – 54 kg',
+    '54 – 57 kg',
+    '57 – 60 kg',
+    '60 – 63.5 kg',
+    '63.5 – 67 kg',
+    '67 – 71 kg',
+    '71 – 75 kg',
+    '75 – 80 kg',
+    '80 – 92 kg',
+    '+92 kg',
+  ];
+  String? selectedWeight;
 
   Future<void> registerUser() async {
     if (passwordController.text != confirmPasswordController.text) {
@@ -32,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final url = Uri.parse('$API_BASE_URL/users/register'); // <-- Cambia aquí
+    final url = Uri.parse('$API_BASE_URL/users/register');
     try {
       final response = await http.post(
         url,
@@ -42,11 +59,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'birthDate': birthDateController.text,
           'email': emailController.text,
           'password': passwordController.text,
-          'confirmPassword': confirmPasswordController.text, // Agregado
+          'confirmPassword': confirmPasswordController.text,
           'phone': phoneController.text,
           'gender': selectedGender,
           'isAdmin': false,
-          'weight': selectedWeight,
+          'weight': selectedWeight, // Usar el valor seleccionado
+          'fights': fightsController.text,
           'city': cityController.text,
         }),
       );
@@ -65,10 +83,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Usuario registrado correctamente')),
         );
-        // Redirige al usuario a la pantalla de inicio de sesión después de registrarse
         Navigator.pushReplacementNamed(context, '/login');
       } else {
-        // Imprime el código de estado y el cuerpo de la respuesta
         print('Error en el registro: ${response.statusCode} - ${response.body}');
         final msg = json.decode(response.body)['message'] ?? 'Error desconocido';
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,12 +92,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } catch (e) {
-      // Captura errores de conexión o excepciones
       print('Excepción durante el registro: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error de conexión: ${e.toString()}')),
       );
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    selectedWeight = weightCategories.first;
   }
 
   @override
@@ -136,9 +157,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _buildInputField('Ciudad', cityController),
               const SizedBox(height: 12),
 
+              // CAMBIO: Selector de peso en vez de campo de texto
               DropdownButtonFormField<String>(
                 value: selectedWeight,
-                items: ['Peso pluma', 'Peso ligero', 'Peso medio', 'Peso pesado']
+                items: weightCategories
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
                 onChanged: (value) {
@@ -146,12 +168,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     selectedWeight = value!;
                   });
                 },
-                decoration: _inputDecoration('Peso'),
+                decoration: _inputDecoration('Peso (kg)'),
                 dropdownColor: Colors.black,
                 style: const TextStyle(color: Colors.white),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Selecciona tu peso' : null,
               ),
+              const SizedBox(height: 12),
 
+              // Campo número de combates
+              TextField(
+                controller: fightsController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputDecoration('Número de combates'),
+              ),
               const SizedBox(height: 20),
+
               ElevatedButton(
                 onPressed: registerUser,
                 style: ElevatedButton.styleFrom(
